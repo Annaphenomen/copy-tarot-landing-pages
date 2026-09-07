@@ -15,6 +15,7 @@ import {
   Menu,
 } from "lucide-react";
 
+import cardCover from "@/assets/card-cover.png.asset.json";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
