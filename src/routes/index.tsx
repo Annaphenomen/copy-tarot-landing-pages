@@ -440,11 +440,6 @@ function RandomizerSection() {
             )}
           </div>
 
-          {card && !drawing && (
-            <p className="mt-6 animate-fade-in text-sm text-muted-foreground">
-              Карта вытянута из полной колоды
-            </p>
-          )}
 
 
           <Button
