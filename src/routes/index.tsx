@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import cardCover from "@/assets/card-cover.png.asset.json";
+import { FULL_DECK } from "@/data/full-deck";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
