@@ -170,8 +170,8 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const { error: updateError } = await supabaseAdmin
       .from("orders")
       .update({
-        yandex_claim_id: result.claim_id,
-        yandex_status: result.status,
+        yandex_claim_id: result.claim_id ?? null,
+        yandex_status: result.status ?? null,
         delivery_price: result.price ? Number(result.price) : null,
         status: "created",
       })
