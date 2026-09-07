@@ -691,6 +691,7 @@ function LandingPage() {
         <HeroSection onAddToCart={addToCart} />
         <TrustBar />
         <CardsSection />
+        <RandomizerSection />
         <ProductSection
           onAddToCart={addToCart}
           cartCount={quantity}
