@@ -20,6 +20,7 @@ import tarotBox from "@/assets/product/tarot-box.jpg.asset.json";
 import tarotSpread from "@/assets/product/tarot-spread.jpg.asset.json";
 import tarotInHand from "@/assets/product/tarot-in-hand.jpg.asset.json";
 import tarotFriends from "@/assets/product/tarot-friends.jpg.asset.json";
+import tgQr from "@/assets/tg-qr.png.asset.json";
 import { FULL_DECK } from "@/data/full-deck";
 import { Button } from "@/components/ui/button";
 import {
@@ -505,6 +506,28 @@ function RandomizerSection() {
             {drawn ? "Ещё раз" : "Дать карту"}
           </Button>
 
+          <div className="mt-12 flex flex-col items-center gap-6 rounded-2xl border border-gold/20 bg-background/40 p-6 sm:p-8">
+            <p className="max-w-md text-base text-muted-foreground sm:text-lg">
+              Хочешь узнать расшифровку — приходи в наш телеграм-канал. А лучше не плети
+              туманных догадок: купи колоду и гадай самостоятельно.
+            </p>
+            <a
+              href="https://t.me/taroroflan"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-40 transition-transform hover:scale-105"
+            >
+              <img
+                src={tgQr.url}
+                alt="QR-код канала Таро Рофлан в Telegram"
+                className="rounded-xl border border-gold/20 bg-white p-2"
+                loading="lazy"
+              />
+            </a>
+            <Button asChild size="lg" className="px-8 text-lg font-semibold shadow-lg shadow-primary/20">
+              <a href="#deck">КУПИТЬ</a>
+            </Button>
+          </div>
         </div>
       </div>
     </section>
