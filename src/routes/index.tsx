@@ -418,7 +418,7 @@ function RandomizerSection() {
           <div className="relative flex aspect-[862/1453] w-56 items-center justify-center overflow-hidden rounded-2xl border border-gold/30 bg-card sm:w-64">
             {card && !drawing ? (
               <img
-                key={drawn.key}
+                key={drawn?.key ?? 0}
                 src={card.src}
                 alt={card.title}
                 className="h-full w-full animate-scale-in object-cover"
