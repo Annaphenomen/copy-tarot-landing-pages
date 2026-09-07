@@ -826,11 +826,11 @@ function LandingPage() {
             )}
           </div>
 
-          <SheetFooter>
+          <SheetFooter className="flex-col items-stretch gap-0 sm:flex-col sm:justify-start sm:space-x-0">
             <Separator className="mb-4" />
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-muted-foreground">Итого</span>
-              <span className="font-display text-2xl text-foreground">{total} ₽</span>
+              <span className="whitespace-nowrap font-display text-2xl text-foreground">{total} ₽</span>
             </div>
             <Button
               className="w-full"
