@@ -44,7 +44,7 @@ function defaultItems() {
 }
 
 export const calculateDeliveryPrice = createServerFn({ method: "POST" })
-  .inputValidator((data) => priceInputSchema.parse(data))
+  .validator((data) => priceInputSchema.parse(data))
   .handler(async ({ data }) => {
     const body = {
       items: defaultItems(),
@@ -91,7 +91,7 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
   });
 
 export const createDeliveryOrder = createServerFn({ method: "POST" })
-  .inputValidator((data) => orderInputSchema.parse(data))
+  .validator((data) => orderInputSchema.parse(data))
   .handler(async ({ data }) => {
     const { createClient } = await import("@supabase/supabase-js");
     const supabaseAdmin = createClient(
@@ -195,7 +195,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
   });
 
 export const getDeliveryStatus = createServerFn({ method: "POST" })
-  .inputValidator((data) => statusInputSchema.parse(data))
+  .validator((data) => statusInputSchema.parse(data))
   .handler(async ({ data }) => {
     const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/claims/info`, {
       method: "POST",
