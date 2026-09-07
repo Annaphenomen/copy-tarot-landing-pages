@@ -388,9 +388,9 @@ function RandomizerSection() {
     setDrawing(true);
     window.setTimeout(() => {
       setDrawn((prev) => {
-        let index = Math.floor(Math.random() * CARDS.length);
-        if (prev && CARDS.length > 1) {
-          while (index === prev.index) index = Math.floor(Math.random() * CARDS.length);
+        let index = Math.floor(Math.random() * FULL_DECK.length);
+        if (prev && FULL_DECK.length > 1) {
+          while (index === prev.index) index = Math.floor(Math.random() * FULL_DECK.length);
         }
         return { index, key: (prev?.key ?? 0) + 1 };
       });
@@ -398,7 +398,7 @@ function RandomizerSection() {
     }, 450);
   };
 
-  const card = drawn ? CARDS[drawn.index]! : null;
+  const card = drawn ? FULL_DECK[drawn.index] : null;
 
   return (
     <section id="randomizer" className="bg-secondary/30 px-4 py-24 sm:px-6 lg:px-8">
@@ -410,17 +410,17 @@ function RandomizerSection() {
           Дать карту
         </h2>
         <p className="mt-4 text-lg text-muted-foreground">
-          Задумайте вопрос и нажмите кнопку — колода вытянет одну случайную карту. Только прямые
-          положения, без перевёрнутых.
+          Задумайте вопрос и нажмите кнопку — полная колода из 78 карт вытянет одну случайную карту.
+          Только прямые положения, без перевёрнутых.
         </p>
 
         <div className="mt-12 flex flex-col items-center">
-          <div className="relative flex aspect-[2/3] w-56 items-center justify-center overflow-hidden rounded-2xl border border-gold/30 bg-card sm:w-64">
+          <div className="relative flex aspect-[862/1453] w-56 items-center justify-center overflow-hidden rounded-2xl border border-gold/30 bg-card sm:w-64">
             {card && !drawing ? (
               <img
-                key={drawn!.key}
+                key={drawn.key}
                 src={card.src}
-                alt={`Карта «${card.title}»`}
+                alt={card.title}
                 className="h-full w-full animate-scale-in object-cover"
               />
             ) : (
@@ -441,10 +441,9 @@ function RandomizerSection() {
           </div>
 
           {card && !drawing && (
-            <div className="mt-6 animate-fade-in">
-              <h3 className="font-display text-2xl text-foreground">{card.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">«{card.caption}»</p>
-            </div>
+            <p className="mt-6 animate-fade-in text-sm text-muted-foreground">
+              Карта вытянута из полной колоды
+            </p>
           )}
 
 
