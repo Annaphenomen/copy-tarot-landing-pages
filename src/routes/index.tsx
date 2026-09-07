@@ -20,7 +20,7 @@ import tarotBox from "@/assets/product/tarot-box.jpg.asset.json";
 import tarotSpread from "@/assets/product/tarot-spread.jpg.asset.json";
 import tarotInHand from "@/assets/product/tarot-in-hand.jpg.asset.json";
 import tarotFriends from "@/assets/product/tarot-friends.jpg.asset.json";
-import tgQr from "@/assets/tg-qr-black-clean-v2.png.asset.json";
+import tgQr from "@/assets/tg-qr-black-clean-v3.png.asset.json";
 import { FULL_DECK } from "@/data/full-deck";
 import { Button } from "@/components/ui/button";
 import {
