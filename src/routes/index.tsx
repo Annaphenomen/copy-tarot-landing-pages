@@ -15,6 +15,7 @@ import {
   Menu,
 } from "lucide-react";
 
+import cardCover from "@/assets/card-cover.png.asset.json";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -379,7 +380,7 @@ function CardsSection() {
 }
 
 function RandomizerSection() {
-  const [drawn, setDrawn] = useState<{ index: number; reversed: boolean; key: number } | null>(null);
+  const [drawn, setDrawn] = useState<{ index: number; key: number } | null>(null);
   const [drawing, setDrawing] = useState(false);
 
   const draw = () => {
@@ -390,7 +391,7 @@ function RandomizerSection() {
         if (prev && CARDS.length > 1) {
           while (index === prev.index) index = Math.floor(Math.random() * CARDS.length);
         }
-        return { index, reversed: Math.random() < 0.5, key: (prev?.key ?? 0) + 1 };
+        return { index, key: (prev?.key ?? 0) + 1 };
       });
       setDrawing(false);
     }, 450);
@@ -408,8 +409,8 @@ function RandomizerSection() {
           Дать карту
         </h2>
         <p className="mt-4 text-lg text-muted-foreground">
-          Задумайте вопрос и нажмите кнопку — колода вытянет одну случайную карту. Прямое или
-          перевёрнутое положение выпадает так же, как в настоящем раскладе.
+          Задумайте вопрос и нажмите кнопку — колода вытянет одну случайную карту. Только прямые
+          положения, без перевёрнутых.
         </p>
 
         <div className="mt-12 flex flex-col items-center">
@@ -418,21 +419,22 @@ function RandomizerSection() {
               <img
                 key={drawn!.key}
                 src={card.src}
-                alt={`Карта «${card.title}»${drawn!.reversed ? " (перевёрнутая)" : ""}`}
-                className={`h-full w-full animate-scale-in object-cover ${
-                  drawn!.reversed ? "rotate-180" : ""
-                }`}
+                alt={`Карта «${card.title}»`}
+                className="h-full w-full animate-scale-in object-cover"
               />
             ) : (
-              <div
-                className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,oklch(0.74_0.13_85/0.18),transparent_70%)] ${
-                  drawing ? "animate-pulse" : ""
-                }`}
-              >
-                <Sparkles className="h-10 w-10 text-gold" />
-                <span className="px-6 text-sm text-muted-foreground">
-                  {drawing ? "Тасуем колоду…" : "Рубашка вверх"}
-                </span>
+              <div className="relative h-full w-full">
+                <img
+                  src={cardCover.url}
+                  alt="Рубашка колоды"
+                  className={`h-full w-full object-cover ${drawing ? "animate-pulse" : ""}`}
+                />
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/55">
+                  <Sparkles className="h-10 w-10 text-gold" />
+                  <span className="px-6 text-sm text-foreground/90">
+                    {drawing ? "Тасуем колоду…" : "Рубашка вверх"}
+                  </span>
+                </div>
               </div>
             )}
           </div>
@@ -441,11 +443,9 @@ function RandomizerSection() {
             <div className="mt-6 animate-fade-in">
               <h3 className="font-display text-2xl text-foreground">{card.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">«{card.caption}»</p>
-              <p className="mt-2 text-xs uppercase tracking-wider text-gold">
-                {drawn!.reversed ? "Перевёрнутая" : "Прямая"}
-              </p>
             </div>
           )}
+
 
           <Button
             size="lg"
