@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          address_from: string
+          address_to: string
+          comment: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string
+          delivery_currency: string
+          delivery_price: number | null
+          id: string
+          items: Json
+          status: string
+          updated_at: string
+          yandex_claim_id: string | null
+          yandex_status: string | null
+        }
+        Insert: {
+          address_from: string
+          address_to: string
+          comment?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone: string
+          delivery_currency?: string
+          delivery_price?: number | null
+          id?: string
+          items?: Json
+          status?: string
+          updated_at?: string
+          yandex_claim_id?: string | null
+          yandex_status?: string | null
+        }
+        Update: {
+          address_from?: string
+          address_to?: string
+          comment?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string
+          delivery_currency?: string
+          delivery_price?: number | null
+          id?: string
+          items?: Json
+          status?: string
+          updated_at?: string
+          yandex_claim_id?: string | null
+          yandex_status?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

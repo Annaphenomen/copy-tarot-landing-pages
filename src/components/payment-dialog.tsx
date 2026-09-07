@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import QRCode from "qrcode";
-import { CheckCircle2, Loader2, QrCode, Smartphone } from "lucide-react";
+import { CheckCircle2, Loader2, QrCode, Smartphone, Truck } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -17,13 +17,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { calculateDeliveryPrice, createDeliveryOrder } from "@/lib/yandex-delivery.functions";
 
-type Step = "contacts" | "qr" | "done";
+type Step = "contacts" | "delivery" | "qr" | "done";
 
 export type OrderContacts = {
   name: string;
   contact: string;
   city: string;
+  addressFrom: string;
+  addressTo: string;
 };
 
 function makeOrderId() {
@@ -52,6 +56,12 @@ export function PaymentDialog({
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [checking, setChecking] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [contacts, setContacts] = useState<OrderContacts | null>(null);
+  const [deliveryPrice, setDeliveryPrice] = useState<number | null>(null);
+  const [calculatingDelivery, setCalculatingDelivery] = useState(false);
+
+  const calcDelivery = useServerFn(calculateDeliveryPrice);
+  const createOrder = useServerFn(createDeliveryOrder);
 
   useEffect(() => {
     if (open) return undefined;
@@ -61,33 +71,73 @@ export function PaymentDialog({
       setQrDataUrl("");
       setChecking(false);
       setConsent(false);
-
+      setContacts(null);
+      setDeliveryPrice(null);
+      setCalculatingDelivery(false);
     }, 250);
     return () => clearTimeout(timer);
   }, [open]);
 
-  const startPayment = async (contacts: OrderContacts) => {
+  const startDeliveryCalculation = async (values: OrderContacts) => {
+    setCalculatingDelivery(true);
+    try {
+      const result = await calcDelivery({
+        data: {
+          addressFrom: values.addressFrom,
+          addressTo: values.addressTo,
+        },
+      });
+      setContacts(values);
+      setDeliveryPrice(result.price);
+      setStep("delivery");
+    } catch (err) {
+      toast.error("Не удалось рассчитать доставку. Проверьте адреса и попробуйте снова.");
+      console.error(err);
+    } finally {
+      setCalculatingDelivery(false);
+    }
+  };
+
+  const startPayment = async () => {
+    if (!contacts) return;
     const id = makeOrderId();
     setOrderId(id);
-    const url = await QRCode.toDataURL(buildPaymentLink(id, total), {
+    const finalTotal = total + (deliveryPrice ?? 0);
+    const url = await QRCode.toDataURL(buildPaymentLink(id, finalTotal), {
       width: 512,
       margin: 1,
       color: { dark: "#0d1026", light: "#ffffff" },
     });
     setQrDataUrl(url);
     setStep("qr");
-    void contacts;
   };
 
-  const confirmPayment = () => {
+  const confirmPayment = async () => {
+    if (!contacts) return;
     setChecking(true);
-    // Проверка статуса заказа появится, когда подключим вебхук Сбера.
-    setTimeout(() => {
+    try {
+      await createOrder({
+        data: {
+          customerName: contacts.name,
+          customerPhone: contacts.contact,
+          customerEmail: contacts.city.includes("@") ? contacts.city : undefined,
+          addressFrom: contacts.addressFrom,
+          addressTo: contacts.addressTo,
+        },
+      });
       setChecking(false);
       setStep("done");
       onPaid();
-    }, 1400);
+    } catch (err) {
+      setChecking(false);
+      toast.error("Оплата принята, но не удалось создать заявку на доставку. Мы свяжемся с вами.");
+      console.error(err);
+      setStep("done");
+      onPaid();
+    }
   };
+
+  const finalTotal = total + (deliveryPrice ?? 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,7 +147,7 @@ export function PaymentDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Оформление заказа</DialogTitle>
               <DialogDescription>
-                Заполните контакты — дальше оплатите по QR-коду через СберБанк Онлайн или СБП.
+                Заполните контакты и адреса — рассчитаем стоимость доставки Яндекс Доставкой.
               </DialogDescription>
             </DialogHeader>
             <form
@@ -105,10 +155,12 @@ export function PaymentDialog({
               onSubmit={(e) => {
                 e.preventDefault();
                 const data = new FormData(e.currentTarget);
-                void startPayment({
+                void startDeliveryCalculation({
                   name: String(data.get("name") ?? ""),
                   contact: String(data.get("contact") ?? ""),
                   city: String(data.get("city") ?? ""),
+                  addressFrom: String(data.get("addressFrom") ?? ""),
+                  addressTo: String(data.get("addressTo") ?? ""),
                 });
               }}
             >
@@ -117,10 +169,22 @@ export function PaymentDialog({
                 required
                 name="contact"
                 type="tel"
-                placeholder="Телефон или e-mail"
-                aria-label="Контакт"
+                placeholder="Телефон"
+                aria-label="Контактный телефон"
               />
               <Input name="city" placeholder="Город доставки" aria-label="Город доставки" />
+              <Input
+                required
+                name="addressFrom"
+                placeholder="Адрес отправителя (откуда забирать)"
+                aria-label="Адрес отправителя"
+              />
+              <Input
+                required
+                name="addressTo"
+                placeholder="Адрес получателя (куда доставить)"
+                aria-label="Адрес получателя"
+              />
 
               <label className="flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
                 <Checkbox
@@ -150,11 +214,69 @@ export function PaymentDialog({
                 </span>
               </label>
 
-              <Button type="submit" className="w-full" size="lg" disabled={!consent}>
-                Перейти к оплате — {total} ₽
+              <Button type="submit" className="w-full" size="lg" disabled={!consent || calculatingDelivery}>
+                {calculatingDelivery ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Рассчитываем доставку…
+                  </>
+                ) : (
+                  "Рассчитать доставку"
+                )}
               </Button>
             </form>
+          </>
+        )}
 
+        {step === "delivery" && contacts && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-display text-2xl">Доставка</DialogTitle>
+              <DialogDescription>
+                Стоимость доставки рассчитана по маршруту.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 rounded-xl border border-border/40 bg-secondary/30 p-4 text-sm">
+              <div className="flex items-start gap-3">
+                <Truck className="mt-0.5 h-4 w-4 text-gold" />
+                <div className="flex-1 space-y-1">
+                  <p className="text-muted-foreground">Откуда</p>
+                  <p className="font-medium text-foreground">{contacts.addressFrom}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Truck className="mt-0.5 h-4 w-4 text-gold" />
+                <div className="flex-1 space-y-1">
+                  <p className="text-muted-foreground">Куда</p>
+                  <p className="font-medium text-foreground">{contacts.addressTo}</p>
+                </div>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Товары</span>
+                <span className="font-medium text-foreground">{total} ₽</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Доставка</span>
+                <span className="font-medium text-foreground">
+                  {deliveryPrice !== null ? `${deliveryPrice} ₽` : "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-base">
+                <span className="font-medium text-foreground">Итого</span>
+                <span className="font-display text-xl font-semibold text-foreground">{finalTotal} ₽</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setStep("contacts")}>
+                Назад
+              </Button>
+              <Button className="flex-1" size="lg" onClick={startPayment}>
+                Перейти к оплате
+              </Button>
+            </div>
           </>
         )}
 
@@ -163,7 +285,7 @@ export function PaymentDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Оплата по QR</DialogTitle>
               <DialogDescription>
-                Заказ №{orderId} на {total} ₽. Отсканируйте код камерой телефона или приложением
+                Заказ №{orderId} на {finalTotal} ₽. Отсканируйте код камерой телефона или приложением
                 СберБанк Онлайн.
               </DialogDescription>
             </DialogHeader>
@@ -181,7 +303,7 @@ export function PaymentDialog({
 
               <div className="flex w-full flex-col gap-2">
                 <Button asChild variant="outline" className="w-full sm:hidden">
-                  <a href={buildPaymentLink(orderId, total)}>
+                  <a href={buildPaymentLink(orderId, finalTotal)}>
                     <Smartphone className="mr-2 h-4 w-4" />
                     Открыть СберБанк Онлайн
                   </a>
@@ -190,7 +312,7 @@ export function PaymentDialog({
                   {checking ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Проверяем оплату…
+                      Создаём заявку на доставку…
                     </>
                   ) : (
                     "Я оплатил"
@@ -213,7 +335,8 @@ export function PaymentDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Спасибо за заказ!</DialogTitle>
               <DialogDescription>
-                Заказ №{orderId} принят. Мы свяжемся с вами, чтобы согласовать доставку.
+                Заказ №{orderId} принят. Заявка на доставку создана — мы пришлём трек-номер, как только
+                курьер заберёт посылку.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
