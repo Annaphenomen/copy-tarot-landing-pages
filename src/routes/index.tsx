@@ -458,7 +458,7 @@ function RandomizerSection() {
           </Button>
 
           <p className="mt-4 text-xs text-muted-foreground">
-            Сейчас в рандомайзере 13 карт-образцов. В колоде — все 78.
+            В рандомайзере участвуют все 78 карт колоды.
           </p>
         </div>
       </div>
