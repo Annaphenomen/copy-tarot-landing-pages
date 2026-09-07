@@ -1,0 +1,180 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system: Luna Solis Tarot
+ * Dark, mystical theme with gold accents.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-gold: var(--gold);
+  --color-gold-muted: var(--gold-muted);
+  --color-midnight: var(--midnight);
+  --color-twilight: var(--twilight);
+  --color-ink: var(--ink);
+  --color-cream: var(--cream);
+  --color-starlight: var(--starlight);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Mystical dark palette */
+  --background: oklch(0.145 0.025 270);
+  --foreground: oklch(0.93 0.015 85);
+  --card: oklch(0.185 0.03 270);
+  --card-foreground: oklch(0.93 0.015 85);
+  --popover: oklch(0.18 0.03 270);
+  --popover-foreground: oklch(0.93 0.015 85);
+  --primary: oklch(0.74 0.13 85);
+  --primary-foreground: oklch(0.18 0.04 270);
+  --secondary: oklch(0.24 0.04 280);
+  --secondary-foreground: oklch(0.88 0.02 85);
+  --muted: oklch(0.24 0.035 280);
+  --muted-foreground: oklch(0.68 0.03 85);
+  --accent: oklch(0.32 0.08 300);
+  --accent-foreground: oklch(0.93 0.015 85);
+  --destructive: oklch(0.55 0.18 25);
+  --destructive-foreground: oklch(0.95 0.02 85);
+  --border: oklch(0.75 0.08 85 / 15%);
+  --input: oklch(0.75 0.08 85 / 20%);
+  --ring: oklch(0.74 0.13 85 / 60%);
+
+  --gold: oklch(0.74 0.13 85);
+  --gold-muted: oklch(0.55 0.08 85);
+  --midnight: oklch(0.12 0.02 270);
+  --twilight: oklch(0.2 0.04 280);
+  --ink: oklch(0.1 0.01 270);
+  --cream: oklch(0.93 0.015 85);
+  --starlight: oklch(0.85 0.05 85);
+
+  --chart-1: oklch(0.74 0.13 85);
+  --chart-2: oklch(0.5 0.1 300);
+  --chart-3: oklch(0.65 0.12 85);
+  --chart-4: oklch(0.4 0.08 300);
+  --chart-5: oklch(0.85 0.08 85);
+  --sidebar: oklch(0.16 0.025 270);
+  --sidebar-foreground: oklch(0.93 0.015 85);
+  --sidebar-primary: oklch(0.74 0.13 85);
+  --sidebar-primary-foreground: oklch(0.18 0.04 270);
+  --sidebar-accent: oklch(0.24 0.04 280);
+  --sidebar-accent-foreground: oklch(0.93 0.015 85);
+  --sidebar-border: oklch(0.75 0.08 85 / 15%);
+  --sidebar-ring: oklch(0.74 0.13 85 / 60%);
+}
+
+.dark {
+  --background: oklch(0.1 0.015 270);
+  --foreground: oklch(0.93 0.015 85);
+  --card: oklch(0.15 0.025 270);
+  --card-foreground: oklch(0.93 0.015 85);
+  --primary: oklch(0.74 0.13 85);
+  --primary-foreground: oklch(0.18 0.04 270);
+  --secondary: oklch(0.22 0.04 280);
+  --muted: oklch(0.22 0.035 280);
+  --muted-foreground: oklch(0.65 0.03 85);
+  --accent: oklch(0.28 0.08 300);
+  --border: oklch(0.75 0.08 85 / 12%);
+  --input: oklch(0.75 0.08 85 / 18%);
+  --ring: oklch(0.74 0.13 85 / 55%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 500;
+  }
+}
+
+@utility text-gradient-gold {
+  background-image: linear-gradient(135deg, var(--color-gold) 0%, var(--color-starlight) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility bg-gold-shine {
+  background: linear-gradient(
+    135deg,
+    var(--color-gold) 0%,
+    oklch(0.82 0.11 85) 50%,
+    var(--color-gold) 100%
+  );
+}
+
+@utility bg-midnight-glow {
+  background: radial-gradient(circle at top, var(--color-twilight) 0%, var(--color-midnight) 60%);
+}
+
+@utility border-gold {
+  border-color: var(--color-gold);
+}
+
+@utility glow-gold {
+  box-shadow: 0 0 40px -10px oklch(0.74 0.13 85 / 25%);
+}
+
+@source inline("bg-midnight-glow text-gradient-gold bg-gold-shine border-gold glow-gold");
