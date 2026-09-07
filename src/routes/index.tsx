@@ -16,6 +16,10 @@ import {
 } from "lucide-react";
 
 import cardCover from "@/assets/card-cover.png.asset.json";
+import tarotBox from "@/assets/product/tarot-box.jpg.asset.json";
+import tarotSpread from "@/assets/product/tarot-spread.jpg.asset.json";
+import tarotInHand from "@/assets/product/tarot-in-hand.jpg.asset.json";
+import tarotFriends from "@/assets/product/tarot-friends.jpg.asset.json";
 import { FULL_DECK } from "@/data/full-deck";
 import { Button } from "@/components/ui/button";
 import {
@@ -340,6 +344,8 @@ function TrustBar() {
 }
 
 function CardsSection() {
+  const previewCards = CARDS.slice(0, 5);
+
   return (
     <section id="cards" className="px-4 py-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -349,31 +355,78 @@ function CardsSection() {
             Знакомые сюжеты, новые смыслы
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Все 78 карт колоды — каждая нарисована вручную и снабжена своей подписью. На сайте
-            приведены образцы 13 карт.
+            Внутри — 78 карт с авторскими иллюстрациями и подписями. Показываем лишь несколько,
+            чтобы знакомство с остальными случилось уже при распаковке.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {CARDS.map((card) => (
-            <figure
-              key={card.title}
-              className="group overflow-hidden rounded-2xl border border-border/40 bg-card transition-all hover:border-gold/40"
-            >
-              <div className="overflow-hidden">
-                <img
-                  src={card.src}
-                  alt={`Карта «${card.title}» — ${card.caption}`}
-                  className="aspect-[2/3] w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  loading="lazy"
-                />
-              </div>
-              <figcaption className="p-5">
-                <h3 className="font-display text-xl text-card-foreground">{card.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">«{card.caption}»</p>
-              </figcaption>
+        <div className="mt-14 grid gap-4 md:grid-cols-12 md:grid-rows-2">
+          <figure className="group relative min-h-80 overflow-hidden rounded-lg border border-border/40 md:col-span-7 md:row-span-2 md:min-h-[620px]">
+            <img
+              src={tarotBox.url}
+              alt="Подарочная коробка колоды «Рофлан Судьбы»"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+              loading="lazy"
+            />
+            <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 via-background/55 to-transparent px-6 pb-6 pt-20">
+              <p className="font-display text-2xl text-foreground">Колода, которую хочется подарить</p>
+            </figcaption>
+          </figure>
+
+          <figure className="group relative min-h-72 overflow-hidden rounded-lg border border-border/40 md:col-span-5">
+            <img
+              src={tarotSpread.url}
+              alt="Расклад из карт «Рофлан Судьбы»"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+              loading="lazy"
+            />
+          </figure>
+
+          <div className="grid grid-cols-2 gap-4 md:col-span-5">
+            <figure className="group relative min-h-64 overflow-hidden rounded-lg border border-border/40">
+              <img
+                src={tarotInHand.url}
+                alt="Карта из колоды в руках"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                loading="lazy"
+              />
             </figure>
-          ))}
+            <figure className="group relative min-h-64 overflow-hidden rounded-lg border border-border/40">
+              <img
+                src={tarotFriends.url}
+                alt="Друзья играют с колодой «Рофлан Судьбы»"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                loading="lazy"
+              />
+            </figure>
+          </div>
+        </div>
+
+        <div className="mt-10">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <span className="text-xs font-medium uppercase tracking-wider text-gold">Небольшой тизер</span>
+              <h3 className="mt-2 font-display text-2xl text-foreground sm:text-3xl">Пять карт из семидесяти восьми</h3>
+            </div>
+            <span className="hidden text-sm text-muted-foreground sm:block">Остальные останутся сюрпризом</span>
+          </div>
+          <div className="mt-6 grid grid-cols-5 gap-2 sm:gap-4">
+            {previewCards.map((card) => (
+              <figure key={card.title} className="group min-w-0">
+                <div className="overflow-hidden rounded-md border border-border/40 bg-card transition-colors group-hover:border-gold/40">
+                  <img
+                    src={card.src}
+                    alt={`Карта «${card.title}»`}
+                    className="aspect-[2/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    loading="lazy"
+                  />
+                </div>
+                <figcaption className="mt-2 hidden text-center text-xs text-muted-foreground sm:block">
+                  {card.title}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -452,9 +505,6 @@ function RandomizerSection() {
             {drawn ? "Ещё раз" : "Дать карту"}
           </Button>
 
-          <p className="mt-4 text-xs text-muted-foreground">
-            В рандомайзере участвуют все 78 карт колоды.
-          </p>
         </div>
       </div>
     </section>
