@@ -12,6 +12,7 @@ import {
   Plus,
   X,
   Quote,
+  Menu,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -171,9 +172,11 @@ const REVIEWS = [
 ];
 
 function Header({ cartCount, openCart }: { cartCount: number; openCart: () => void }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navLinks = [
     { label: "Колода", href: "#deck" },
     { label: "Карты", href: "#cards" },
+    { label: "Карта дня", href: "#randomizer" },
     { label: "Отзывы", href: "#reviews" },
     { label: "Вопросы", href: "#faq" },
   ];
@@ -215,8 +218,42 @@ function Header({ cartCount, openCart }: { cartCount: number; openCart: () => vo
           <Button asChild className="hidden sm:inline-flex">
             <a href="#deck">Купить</a>
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Открыть меню"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
         </div>
       </div>
+
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="right" className="w-[280px]">
+          <SheetHeader>
+            <SheetTitle className="font-display text-2xl text-gradient-gold">Рофлан Судьбы</SheetTitle>
+          </SheetHeader>
+          <nav className="mt-8 flex flex-col gap-4">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="text-lg font-medium text-foreground transition-colors hover:text-gold"
+              >
+                {link.label}
+              </a>
+            ))}
+            <Button asChild className="mt-4 w-full">
+              <a href="#deck" onClick={() => setMobileOpen(false)}>
+                Купить — {PRICE} ₽
+              </a>
+            </Button>
+          </nav>
+        </SheetContent>
+      </Sheet>
     </header>
   );
 }
@@ -388,7 +425,7 @@ function RandomizerSection() {
               />
             ) : (
               <div
-                className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,hsl(var(--gold)/0.18),transparent_70%)] ${
+                className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,oklch(0.74_0.13_85/0.18),transparent_70%)] ${
                   drawing ? "animate-pulse" : ""
                 }`}
               >
@@ -654,6 +691,7 @@ function LandingPage() {
         <HeroSection onAddToCart={addToCart} />
         <TrustBar />
         <CardsSection />
+        <RandomizerSection />
         <ProductSection
           onAddToCart={addToCart}
           cartCount={quantity}

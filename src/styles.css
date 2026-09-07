@@ -177,4 +177,38 @@
   box-shadow: 0 0 40px -10px oklch(0.74 0.13 85 / 25%);
 }
 
-@source inline("bg-midnight-glow text-gradient-gold bg-gold-shine border-gold glow-gold");
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-scale-in {
+  animation: scale-in 0.45s ease-out forwards;
+}
+
+@utility animate-fade-in {
+  animation: fade-in 0.45s ease-out forwards;
+}
+
+@source inline("bg-midnight-glow text-gradient-gold bg-gold-shine border-gold glow-gold animate-scale-in animate-fade-in text-balance");
