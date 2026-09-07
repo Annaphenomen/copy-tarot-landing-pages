@@ -20,7 +20,7 @@ import tarotBox from "@/assets/product/tarot-box.jpg.asset.json";
 import tarotSpread from "@/assets/product/tarot-spread.jpg.asset.json";
 import tarotInHand from "@/assets/product/tarot-in-hand.jpg.asset.json";
 import tarotFriends from "@/assets/product/tarot-friends.jpg.asset.json";
-import tgQr from "@/assets/tg-qr-black-gold.png.asset.json";
+import tgQr from "@/assets/tg-qr-black-clean.png.asset.json";
 import { FULL_DECK } from "@/data/full-deck";
 import { Button } from "@/components/ui/button";
 import {
@@ -515,6 +515,7 @@ function RandomizerSection() {
               href="https://t.me/taroroflan"
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Открыть канал Таро Рофлан в Telegram"
               className="block w-44 overflow-hidden rounded-xl border border-gold/30 shadow-lg shadow-primary/10 transition-transform hover:scale-105"
             >
               <img
