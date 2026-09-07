@@ -93,12 +93,7 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
 export const createDeliveryOrder = createServerFn({ method: "POST" })
   .validator((data) => orderInputSchema.parse(data))
   .handler(async ({ data }) => {
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabaseAdmin = createClient(
-      process.env["SUPABASE_URL"]!,
-      process.env["SUPABASE_SERVICE_ROLE_KEY"]!,
-      { auth: { persistSession: false } }
-    );
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const items = defaultItems();
 
@@ -175,8 +170,8 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const { error: updateError } = await supabaseAdmin
       .from("orders")
       .update({
-        yandex_claim_id: result.claim_id,
-        yandex_status: result.status,
+        yandex_claim_id: result.claim_id ?? null,
+        yandex_status: result.status ?? null,
         delivery_price: result.price ? Number(result.price) : null,
         status: "created",
       })
