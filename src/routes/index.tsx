@@ -773,12 +773,12 @@ function LandingPage() {
       <Footer />
 
       <Sheet open={cartOpen} onOpenChange={setCartOpen}>
-        <SheetContent className="flex flex-col">
+        <SheetContent className="flex h-full flex-col gap-0">
           <SheetHeader>
             <SheetTitle className="font-display text-2xl">Корзина</SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4">
             {quantity === 0 ? (
               <p className="py-12 text-center text-sm text-muted-foreground">Корзина пуста</p>
             ) : (
@@ -826,11 +826,11 @@ function LandingPage() {
             )}
           </div>
 
-          <SheetFooter>
+          <SheetFooter className="mt-auto shrink-0 flex-col items-stretch gap-0 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-col sm:justify-start sm:space-x-0">
             <Separator className="mb-4" />
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-muted-foreground">Итого</span>
-              <span className="font-display text-2xl text-foreground">{total} ₽</span>
+              <span className="whitespace-nowrap font-display text-2xl text-foreground">{total} ₽</span>
             </div>
             <Button
               className="w-full"
