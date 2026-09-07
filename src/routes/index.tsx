@@ -425,10 +425,9 @@ function RandomizerSection() {
               />
             ) : (
               <div
-                className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,hsl(var(--gold)/0.18),transparent_70%)] ${
+                className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,oklch(0.74_0.13_85/0.18),transparent_70%)] ${
                   drawing ? "animate-pulse" : ""
                 }`}
-              >
                 <Sparkles className="h-10 w-10 text-gold" />
                 <span className="px-6 text-sm text-muted-foreground">
                   {drawing ? "Тасуем колоду…" : "Рубашка вверх"}
