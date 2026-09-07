@@ -35,7 +35,7 @@ import { PaymentDialog } from "@/components/payment-dialog";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
-import wands8 from "@/assets/cards/wands-8.jpg.asset.json";
+import wands8 from "@/assets/cards/wands-8-new.jpg.asset.json";
 import wandsPage from "@/assets/cards/wands-page.jpg.asset.json";
 import cups5 from "@/assets/cards/cups-5.jpg.asset.json";
 import cupsPage from "@/assets/cards/cups-page.jpg.asset.json";
