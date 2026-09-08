@@ -2,13 +2,43 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const YANDEX_DELIVERY_BASE_URL = "https://b2b.taxi.yandex.net/b2b/cargo/integration/v2";
+const YANDEX_PLATFORM_BASE_URL = "https://b2b.taxi.yandex.net/api/b2b/platform";
 
-const deliveryMethodSchema = z.enum(["courier", "express"]).default("courier");
+// Города с известным geo_id Яндекса — по ним ищем пункты выдачи.
+export const PICKUP_CITIES: { name: string; geoId: number }[] = [
+  { name: "Москва", geoId: 213 },
+  { name: "Санкт-Петербург", geoId: 2 },
+  { name: "Новосибирск", geoId: 65 },
+  { name: "Екатеринбург", geoId: 54 },
+  { name: "Казань", geoId: 43 },
+  { name: "Нижний Новгород", geoId: 47 },
+  { name: "Челябинск", geoId: 56 },
+  { name: "Самара", geoId: 51 },
+  { name: "Уфа", geoId: 172 },
+  { name: "Ростов-на-Дону", geoId: 39 },
+  { name: "Краснодар", geoId: 35 },
+  { name: "Пермь", geoId: 50 },
+  { name: "Воронеж", geoId: 193 },
+  { name: "Волгоград", geoId: 38 },
+  { name: "Тюмень", geoId: 55 },
+];
+
+const pickupPointSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  address: z.string().min(3),
+  latitude: z.number(),
+  longitude: z.number(),
+});
+
+const searchInputSchema = z.object({
+  geoId: z.number(),
+  query: z.string().optional(),
+});
 
 const priceInputSchema = z.object({
   addressFrom: z.string().min(3, "Укажите адрес отправителя"),
-  addressTo: z.string().min(3, "Укажите адрес получателя"),
-  deliveryMethod: deliveryMethodSchema,
+  pickupPoint: pickupPointSchema,
 });
 
 const orderInputSchema = z.object({
@@ -16,8 +46,7 @@ const orderInputSchema = z.object({
   customerPhone: z.string().min(6, "Укажите телефон"),
   customerEmail: z.string().email("Укажите корректный e-mail").optional().or(z.literal("")),
   addressFrom: z.string().min(3, "Укажите адрес отправителя"),
-  addressTo: z.string().min(3, "Укажите адрес получателя"),
-  deliveryMethod: deliveryMethodSchema,
+  pickupPoint: pickupPointSchema,
   comment: z.string().optional(),
 });
 
@@ -47,6 +76,54 @@ function defaultItems() {
   ];
 }
 
+type RawPickupPoint = {
+  id: string;
+  name?: string;
+  type?: string;
+  position?: { latitude: number; longitude: number };
+  address?: { full_address?: string; locality?: string; street?: string; house?: string };
+  schedule?: unknown;
+};
+
+export const searchPickupPoints = createServerFn({ method: "POST" })
+  .validator((data) => searchInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/pickup-points/list`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        geo_id: data.geoId,
+        payment_method: "already_paid",
+        type: "pickup_point",
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Yandex pickup points error", response.status, text);
+      throw new Error("Не удалось загрузить пункты выдачи. Попробуйте позже.");
+    }
+
+    const result = (await response.json()) as { points?: RawPickupPoint[] };
+    const query = (data.query ?? "").trim().toLowerCase();
+
+    const points = (result.points ?? [])
+      .filter((p) => p.position && p.address?.full_address)
+      .map((p) => ({
+        id: p.id,
+        name: p.name || "Пункт выдачи",
+        address: p.address!.full_address!,
+        latitude: p.position!.latitude,
+        longitude: p.position!.longitude,
+      }))
+      .filter((p) =>
+        query ? `${p.name} ${p.address}`.toLowerCase().includes(query) : true
+      )
+      .slice(0, 40);
+
+    return { points };
+  });
+
 export const calculateDeliveryPrice = createServerFn({ method: "POST" })
   .validator((data) => priceInputSchema.parse(data))
   .handler(async ({ data }) => {
@@ -54,9 +131,12 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
       items: defaultItems(),
       route_points: [
         { id: 1, fullname: data.addressFrom },
-        { id: 2, fullname: data.addressTo },
+        {
+          id: 2,
+          fullname: data.pickupPoint.address,
+          coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
+        },
       ],
-      requirements: { taxi_class: data.deliveryMethod },
     };
 
     const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/check-price`, {
@@ -70,7 +150,7 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
       console.error("Yandex Delivery price error", response.status, text);
       if (text.includes("suitable_offer_not_found")) {
         throw new Error(
-          "Яндекс Доставка не нашла подходящий тариф для этого маршрута. Проверьте адреса или выберите другой способ доставки."
+          "Яндекс Доставка не нашла подходящий тариф до этого пункта выдачи. Выберите другой ПВЗ."
         );
       }
       throw new Error("Не удалось рассчитать доставку. Попробуйте позже.");
@@ -101,6 +181,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const items = defaultItems();
+    const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
 
     const { data: order, error: insertError } = await supabaseAdmin
       .from("orders")
@@ -109,8 +190,8 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         customer_phone: data.customerPhone,
         customer_email: data.customerEmail || null,
         address_from: data.addressFrom,
-        address_to: data.addressTo,
-        comment: [data.deliveryMethod === "express" ? "Экспресс-доставка" : "Курьерская доставка", data.comment]
+        address_to: pickupAddress,
+        comment: [`Доставка в ПВЗ (${data.pickupPoint.id})`, data.comment]
           .filter(Boolean)
           .join(". "),
         items,
@@ -139,14 +220,15 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         {
           point_id: 2,
           visit_order: 2,
-          address: { fullname: data.addressTo },
+          address: {
+            fullname: data.pickupPoint.address,
+            coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
+          },
           contact: { name: data.customerName, phone: data.customerPhone },
           type: "destination",
+          pickup_point_id: data.pickupPoint.id,
         },
       ],
-      client_requirements: {
-        taxi_class: data.deliveryMethod,
-      },
       comment: data.comment || undefined,
     };
 
@@ -173,9 +255,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         .update({ status: "delivery_error", yandex_status: result.status || "error" })
         .eq("id", order.id);
 
-      throw new Error(
-        result.message || `Yandex Delivery claim error: ${response.status}`
-      );
+      throw new Error(result.message || `Yandex Delivery claim error: ${response.status}`);
     }
 
     const { error: updateError } = await supabaseAdmin

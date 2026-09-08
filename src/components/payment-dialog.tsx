@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import QRCode from "qrcode";
-import { CheckCircle2, Loader2, QrCode, Smartphone, Truck } from "lucide-react";
+import { CheckCircle2, Loader2, MapPin, Package, QrCode, Search, Smartphone } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
-
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,19 +16,30 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { calculateDeliveryPrice, createDeliveryOrder } from "@/lib/yandex-delivery.functions";
+import {
+  PICKUP_CITIES,
+  calculateDeliveryPrice,
+  createDeliveryOrder,
+  searchPickupPoints,
+} from "@/lib/yandex-delivery.functions";
 
-type Step = "contacts" | "delivery" | "qr" | "done";
+type Step = "contacts" | "point" | "delivery" | "qr" | "done";
 
-export type DeliveryMethod = "courier" | "express";
+// Адрес склада, откуда курьер забирает посылку для передачи в пункт выдачи.
+const WAREHOUSE_ADDRESS = "Москва, Пресненская набережная, 12";
+
+export type PickupPoint = {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+};
 
 export type OrderContacts = {
   name: string;
   contact: string;
-  city: string;
-  addressFrom: string;
-  addressTo: string;
-  deliveryMethod: DeliveryMethod;
+  email: string;
 };
 
 function makeOrderId() {
@@ -62,8 +71,14 @@ export function PaymentDialog({
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
   const [deliveryPrice, setDeliveryPrice] = useState<number | null>(null);
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("courier");
 
+  const [cityGeoId, setCityGeoId] = useState<number>(PICKUP_CITIES[0]!.geoId);
+  const [pointQuery, setPointQuery] = useState("");
+  const [points, setPoints] = useState<PickupPoint[]>([]);
+  const [loadingPoints, setLoadingPoints] = useState(false);
+  const [selectedPoint, setSelectedPoint] = useState<PickupPoint | null>(null);
+
+  const findPoints = useServerFn(searchPickupPoints);
   const calcDelivery = useServerFn(calculateDeliveryPrice);
   const createOrder = useServerFn(createDeliveryOrder);
 
@@ -78,25 +93,42 @@ export function PaymentDialog({
       setContacts(null);
       setDeliveryPrice(null);
       setCalculatingDelivery(false);
+      setPoints([]);
+      setPointQuery("");
+      setSelectedPoint(null);
     }, 250);
     return () => clearTimeout(timer);
   }, [open]);
 
-  const startDeliveryCalculation = async (values: OrderContacts) => {
+  const loadPoints = async () => {
+    setLoadingPoints(true);
+    try {
+      const result = await findPoints({ data: { geoId: cityGeoId, query: pointQuery } });
+      setPoints(result.points);
+      if (result.points.length === 0) {
+        toast.info("Пункты выдачи не найдены. Попробуйте другой адрес или город.");
+      }
+    } catch (err) {
+      toast.error("Не удалось загрузить пункты выдачи. Попробуйте позже.");
+      console.error(err);
+    } finally {
+      setLoadingPoints(false);
+    }
+  };
+
+  const startDeliveryCalculation = async (point: PickupPoint) => {
+    setSelectedPoint(point);
     setCalculatingDelivery(true);
     try {
       const result = await calcDelivery({
-        data: {
-          addressFrom: values.addressFrom,
-          addressTo: values.addressTo,
-          deliveryMethod: values.deliveryMethod,
-        },
+        data: { addressFrom: WAREHOUSE_ADDRESS, pickupPoint: point },
       });
-      setContacts(values);
       setDeliveryPrice(result.price);
       setStep("delivery");
     } catch (err) {
-      toast.error("Не удалось рассчитать доставку. Проверьте адреса и попробуйте снова.");
+      toast.error(
+        err instanceof Error ? err.message : "Не удалось рассчитать доставку в этот пункт выдачи."
+      );
       console.error(err);
     } finally {
       setCalculatingDelivery(false);
@@ -104,11 +136,10 @@ export function PaymentDialog({
   };
 
   const startPayment = async () => {
-    if (!contacts) return;
     const id = makeOrderId();
     setOrderId(id);
-    const finalTotal = total + (deliveryPrice ?? 0);
-    const url = await QRCode.toDataURL(buildPaymentLink(id, finalTotal), {
+    const nextTotal = total + (deliveryPrice ?? 0);
+    const url = await QRCode.toDataURL(buildPaymentLink(id, nextTotal), {
       width: 512,
       margin: 1,
       color: { dark: "#0d1026", light: "#ffffff" },
@@ -118,17 +149,16 @@ export function PaymentDialog({
   };
 
   const confirmPayment = async () => {
-    if (!contacts) return;
+    if (!contacts || !selectedPoint) return;
     setChecking(true);
     try {
       await createOrder({
         data: {
           customerName: contacts.name,
           customerPhone: contacts.contact,
-          customerEmail: contacts.city.includes("@") ? contacts.city : undefined,
-          addressFrom: contacts.addressFrom,
-          addressTo: contacts.addressTo,
-          deliveryMethod: contacts.deliveryMethod,
+          customerEmail: contacts.email || undefined,
+          addressFrom: WAREHOUSE_ADDRESS,
+          pickupPoint: selectedPoint,
         },
       });
       setChecking(false);
@@ -147,13 +177,13 @@ export function PaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         {step === "contacts" && (
           <>
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Оформление заказа</DialogTitle>
               <DialogDescription>
-                Заполните контакты и адреса — рассчитаем стоимость доставки Яндекс Доставкой.
+                Доставка в пункт выдачи Яндекс Доставки. Сначала — ваши контакты.
               </DialogDescription>
             </DialogHeader>
             <form
@@ -161,14 +191,12 @@ export function PaymentDialog({
               onSubmit={(e) => {
                 e.preventDefault();
                 const data = new FormData(e.currentTarget);
-                void startDeliveryCalculation({
+                setContacts({
                   name: String(data.get("name") ?? ""),
                   contact: String(data.get("contact") ?? ""),
-                  city: String(data.get("city") ?? ""),
-                  addressFrom: String(data.get("addressFrom") ?? ""),
-                  addressTo: String(data.get("addressTo") ?? ""),
-                  deliveryMethod,
+                  email: String(data.get("email") ?? ""),
                 });
+                setStep("point");
               }}
             >
               <Input required name="name" placeholder="Ваше имя" aria-label="Ваше имя" />
@@ -179,47 +207,7 @@ export function PaymentDialog({
                 placeholder="Телефон"
                 aria-label="Контактный телефон"
               />
-              <Input name="city" placeholder="Город доставки" aria-label="Город доставки" />
-              <Input
-                required
-                name="addressFrom"
-                placeholder="Адрес отправителя (откуда забирать)"
-                aria-label="Адрес отправителя"
-              />
-              <Input
-                required
-                name="addressTo"
-                placeholder="Адрес получателя (куда доставить)"
-                aria-label="Адрес получателя"
-              />
-
-              <fieldset className="space-y-2">
-                <legend className="mb-2 text-sm text-muted-foreground">Способ доставки</legend>
-                <div className="grid grid-cols-2 gap-3">
-                  {(
-                    [
-                      { value: "courier", label: "Курьер", hint: "В течение дня" },
-                      { value: "express", label: "Экспресс", hint: "1–2 часа" },
-                    ] as const
-                  ).map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setDeliveryMethod(option.value)}
-                      aria-pressed={deliveryMethod === option.value}
-                      className={`rounded-xl border p-3 text-left transition-colors ${
-                        deliveryMethod === option.value
-                          ? "border-primary bg-secondary/50"
-                          : "border-border/40 hover:border-border"
-                      }`}
-                    >
-                      <span className="block text-sm font-medium text-foreground">{option.label}</span>
-                      <span className="block text-xs text-muted-foreground">{option.hint}</span>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
+              <Input name="email" type="email" placeholder="E-mail" aria-label="E-mail" />
 
               <label className="flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
                 <Checkbox
@@ -249,42 +237,106 @@ export function PaymentDialog({
                 </span>
               </label>
 
-              <Button type="submit" className="w-full" size="lg" disabled={!consent || calculatingDelivery}>
-                {calculatingDelivery ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Рассчитываем доставку…
-                  </>
-                ) : (
-                  "Рассчитать доставку"
-                )}
+              <Button type="submit" className="w-full" size="lg" disabled={!consent}>
+                Выбрать пункт выдачи
               </Button>
             </form>
           </>
         )}
 
-        {step === "delivery" && contacts && (
+        {step === "point" && (
           <>
             <DialogHeader>
-              <DialogTitle className="font-display text-2xl">Доставка</DialogTitle>
+              <DialogTitle className="font-display text-2xl">Пункт выдачи</DialogTitle>
               <DialogDescription>
-                Стоимость доставки рассчитана по маршруту.
+                Выберите город и найдите удобный ПВЗ — там вы заберёте колоду.
               </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <select
+                value={cityGeoId}
+                onChange={(e) => {
+                  setCityGeoId(Number(e.target.value));
+                  setPoints([]);
+                }}
+                aria-label="Город"
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              >
+                {PICKUP_CITIES.map((city) => (
+                  <option key={city.geoId} value={city.geoId}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex gap-2">
+                <Input
+                  value={pointQuery}
+                  onChange={(e) => setPointQuery(e.target.value)}
+                  placeholder="Улица или название ПВЗ"
+                  aria-label="Поиск пункта выдачи"
+                />
+                <Button type="button" variant="outline" onClick={loadPoints} disabled={loadingPoints}>
+                  {loadingPoints ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              <div className="max-h-64 space-y-2 overflow-y-auto">
+                {points.map((point) => (
+                  <button
+                    key={point.id}
+                    type="button"
+                    disabled={calculatingDelivery}
+                    onClick={() => void startDeliveryCalculation(point)}
+                    className="flex w-full items-start gap-3 rounded-xl border border-border/40 p-3 text-left transition-colors hover:border-primary disabled:opacity-60"
+                  >
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                    <span className="flex-1">
+                      <span className="block text-sm font-medium text-foreground">{point.name}</span>
+                      <span className="block text-xs text-muted-foreground">{point.address}</span>
+                    </span>
+                  </button>
+                ))}
+                {points.length === 0 && !loadingPoints && (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Нажмите поиск, чтобы увидеть пункты выдачи в выбранном городе.
+                  </p>
+                )}
+              </div>
+
+              {calculatingDelivery && (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Рассчитываем доставку…
+                </p>
+              )}
+
+              <Button variant="outline" className="w-full" onClick={() => setStep("contacts")}>
+                Назад
+              </Button>
+            </div>
+          </>
+        )}
+
+        {step === "delivery" && selectedPoint && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-display text-2xl">Доставка в ПВЗ</DialogTitle>
+              <DialogDescription>Стоимость доставки рассчитана до пункта выдачи.</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 rounded-xl border border-border/40 bg-secondary/30 p-4 text-sm">
               <div className="flex items-start gap-3">
-                <Truck className="mt-0.5 h-4 w-4 text-gold" />
+                <Package className="mt-0.5 h-4 w-4 text-gold" />
                 <div className="flex-1 space-y-1">
-                  <p className="text-muted-foreground">Откуда</p>
-                  <p className="font-medium text-foreground">{contacts.addressFrom}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Truck className="mt-0.5 h-4 w-4 text-gold" />
-                <div className="flex-1 space-y-1">
-                  <p className="text-muted-foreground">Куда</p>
-                  <p className="font-medium text-foreground">{contacts.addressTo}</p>
+                  <p className="text-muted-foreground">Пункт выдачи</p>
+                  <p className="font-medium text-foreground">{selectedPoint.name}</p>
+                  <p className="text-xs text-muted-foreground">{selectedPoint.address}</p>
                 </div>
               </div>
               <Separator />
@@ -293,22 +345,22 @@ export function PaymentDialog({
                 <span className="font-medium text-foreground">{total} ₽</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  Доставка · {contacts.deliveryMethod === "express" ? "Экспресс" : "Курьер"}
-                </span>
+                <span className="text-muted-foreground">Доставка в ПВЗ</span>
                 <span className="font-medium text-foreground">
                   {deliveryPrice !== null ? `${deliveryPrice} ₽` : "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-base">
                 <span className="font-medium text-foreground">Итого</span>
-                <span className="font-display text-xl font-semibold text-foreground">{finalTotal} ₽</span>
+                <span className="font-display text-xl font-semibold text-foreground">
+                  {finalTotal} ₽
+                </span>
               </div>
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep("contacts")}>
-                Назад
+              <Button variant="outline" className="flex-1" onClick={() => setStep("point")}>
+                Другой ПВЗ
               </Button>
               <Button className="flex-1" size="lg" onClick={startPayment}>
                 Перейти к оплате
@@ -372,8 +424,8 @@ export function PaymentDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Спасибо за заказ!</DialogTitle>
               <DialogDescription>
-                Заказ №{orderId} принят. Заявка на доставку создана — мы пришлём трек-номер, как только
-                курьер заберёт посылку.
+                Заказ №{orderId} принят. Мы отправим колоду в выбранный пункт выдачи и пришлём код
+                получения, как только посылка приедет.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
