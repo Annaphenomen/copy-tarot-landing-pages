@@ -53,16 +53,10 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
     const body = {
       items: defaultItems(),
       route_points: [
-        {
-          address: { fullname: data.addressFrom },
-          type: "source",
-        },
-        {
-          address: { fullname: data.addressTo },
-          type: "destination",
-        },
+        { id: 1, fullname: data.addressFrom },
+        { id: 2, fullname: data.addressTo },
       ],
-      client_requirements: { taxi_class: data.deliveryMethod },
+      requirements: { taxi_class: data.deliveryMethod },
     };
 
     const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/check-price`, {
@@ -73,7 +67,13 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Yandex Delivery price error: ${response.status} ${text}`);
+      console.error("Yandex Delivery price error", response.status, text);
+      if (text.includes("suitable_offer_not_found")) {
+        throw new Error(
+          "Яндекс Доставка не нашла подходящий тариф для этого маршрута. Проверьте адреса или выберите другой способ доставки."
+        );
+      }
+      throw new Error("Не удалось рассчитать доставку. Попробуйте позже.");
     }
 
     const result = (await response.json()) as {
