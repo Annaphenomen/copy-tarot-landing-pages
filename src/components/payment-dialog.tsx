@@ -25,8 +25,7 @@ import {
 
 type Step = "contacts" | "point" | "delivery" | "qr" | "done";
 
-// Адрес склада, откуда курьер забирает посылку для передачи в пункт выдачи.
-const WAREHOUSE_ADDRESS = "Москва, Пресненская набережная, 12";
+type Tariff = "standard" | "express";
 
 export type PickupPoint = {
   id: string;
@@ -70,6 +69,7 @@ export function PaymentDialog({
   const [consent, setConsent] = useState(false);
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
   const [deliveryPrice, setDeliveryPrice] = useState<number | null>(null);
+  const [tariff, setTariff] = useState<Tariff>("standard");
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
 
   const [cityGeoId, setCityGeoId] = useState<number>(PICKUP_CITIES[0]!.geoId);
@@ -121,7 +121,7 @@ export function PaymentDialog({
     setCalculatingDelivery(true);
     try {
       const result = await calcDelivery({
-        data: { addressFrom: WAREHOUSE_ADDRESS, pickupPoint: point },
+        data: { pickupPoint: point, tariff },
       });
       setDeliveryPrice(result.price);
       setStep("delivery");
@@ -157,8 +157,8 @@ export function PaymentDialog({
           customerName: contacts.name,
           customerPhone: contacts.contact,
           customerEmail: contacts.email || undefined,
-          addressFrom: WAREHOUSE_ADDRESS,
           pickupPoint: selectedPoint,
+          tariff,
         },
       });
       setChecking(false);
@@ -254,6 +254,30 @@ export function PaymentDialog({
             </DialogHeader>
 
             <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    { id: "standard", title: "Базовая", hint: "Дешевле, 2–7 дней" },
+                    { id: "express", title: "Экспресс", hint: "Быстрее, дороже" },
+                  ] as { id: Tariff; title: string; hint: string }[]
+                ).map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setTariff(option.id)}
+                    className={`rounded-xl border p-3 text-left transition-colors ${
+                      tariff === option.id
+                        ? "border-primary bg-primary/10"
+                        : "border-border/40 hover:border-primary/50"
+                    }`}
+                  >
+                    <span className="block text-sm font-medium text-foreground">{option.title}</span>
+                    <span className="block text-xs text-muted-foreground">{option.hint}</span>
+                  </button>
+                ))}
+              </div>
+
+
               <select
                 value={cityGeoId}
                 onChange={(e) => {
@@ -345,7 +369,9 @@ export function PaymentDialog({
                 <span className="font-medium text-foreground">{total} ₽</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Доставка в ПВЗ</span>
+                <span className="text-muted-foreground">
+                  {tariff === "express" ? "Экспресс-доставка" : "Базовая доставка"}
+                </span>
                 <span className="font-medium text-foreground">
                   {deliveryPrice !== null ? `${deliveryPrice} ₽` : "—"}
                 </span>

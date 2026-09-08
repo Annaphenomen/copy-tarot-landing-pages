@@ -23,6 +23,61 @@ export const PICKUP_CITIES: { name: string; geoId: number }[] = [
   { name: "Тюмень", geoId: 55 },
 ];
 
+// Наши точки самопривоза: посылку сдаём туда сами, курьер за ней не приезжает.
+export const DROPOFF_POINTS: {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}[] = [
+  { name: "Пермь", address: "Пермь, улица Революции, 52", latitude: 58.0002, longitude: 56.238 },
+  {
+    name: "Красноярск",
+    address: "Красноярск, Ярыгинская набережная, 11",
+    latitude: 55.993,
+    longitude: 92.8,
+  },
+  {
+    name: "Москва",
+    address: "Москва, улица Маршала Соколовского, 3",
+    latitude: 55.777,
+    longitude: 37.488,
+  },
+  {
+    name: "Александров",
+    address: "Александров, улица Гагарина, 23 корп. 1",
+    latitude: 56.397,
+    longitude: 38.72,
+  },
+];
+
+// Тарифы: базовый — самый дешёвый, экспресс — быстрее и дороже.
+const TARIFF_CLASSES: Record<"standard" | "express", string[]> = {
+  standard: ["delivery", "cargo", "courier"],
+  express: ["express", "courier"],
+};
+
+function distanceKm(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number }
+) {
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const lat1 = toRad(a.latitude);
+  const lat2 = toRad(b.latitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+// Ближайшая к покупателю наша точка сдачи — так доставка дешевле.
+export function nearestDropoff(target: { latitude: number; longitude: number }) {
+  return [...DROPOFF_POINTS].sort(
+    (a, b) => distanceKm(a, target) - distanceKm(b, target)
+  )[0]!;
+}
+
 const pickupPointSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -31,28 +86,31 @@ const pickupPointSchema = z.object({
   longitude: z.number(),
 });
 
+const tariffSchema = z.enum(["standard", "express"]).default("standard");
+
 const searchInputSchema = z.object({
   geoId: z.number(),
   query: z.string().optional(),
 });
 
 const priceInputSchema = z.object({
-  addressFrom: z.string().min(3, "Укажите адрес отправителя"),
   pickupPoint: pickupPointSchema,
+  tariff: tariffSchema,
 });
 
 const orderInputSchema = z.object({
   customerName: z.string().min(1, "Укажите имя"),
   customerPhone: z.string().min(6, "Укажите телефон"),
   customerEmail: z.string().email("Укажите корректный e-mail").optional().or(z.literal("")),
-  addressFrom: z.string().min(3, "Укажите адрес отправителя"),
   pickupPoint: pickupPointSchema,
+  tariff: tariffSchema,
   comment: z.string().optional(),
 });
 
 const statusInputSchema = z.object({
   claimId: z.string().min(1),
 });
+
 
 function getAuthHeaders() {
   const token = process.env["YANDEX_DELIVERY_TOKEN"];
@@ -127,53 +185,69 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
 export const calculateDeliveryPrice = createServerFn({ method: "POST" })
   .validator((data) => priceInputSchema.parse(data))
   .handler(async ({ data }) => {
-    const body = {
-      items: defaultItems(),
-      route_points: [
-        { id: 1, fullname: data.addressFrom },
-        {
-          id: 2,
-          fullname: data.pickupPoint.address,
-          coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
-        },
-      ],
-    };
+    const dropoff = nearestDropoff(data.pickupPoint);
+    let lastText = "";
 
-    const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/check-price`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(body),
-    });
+    for (const taxiClass of TARIFF_CLASSES[data.tariff]) {
+      const body = {
+        items: defaultItems(),
+        client_requirements: { taxi_class: taxiClass },
+        route_points: [
+          {
+            id: 1,
+            fullname: dropoff.address,
+            coordinates: [dropoff.longitude, dropoff.latitude],
+          },
+          {
+            id: 2,
+            fullname: data.pickupPoint.address,
+            coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
+          },
+        ],
+      };
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Yandex Delivery price error", response.status, text);
-      if (text.includes("suitable_offer_not_found")) {
-        throw new Error(
-          "Яндекс Доставка не нашла подходящий тариф до этого пункта выдачи. Выберите другой ПВЗ."
-        );
+      const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/check-price`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        lastText = await response.text();
+        console.error("Yandex Delivery price error", taxiClass, response.status, lastText);
+        continue;
       }
-      throw new Error("Не удалось рассчитать доставку. Попробуйте позже.");
+
+      const result = (await response.json()) as {
+        price?: string;
+        currency?: string;
+        offer?: string;
+        code?: string;
+        message?: string;
+      };
+
+      if (result.code) {
+        lastText = result.message || result.code;
+        continue;
+      }
+
+      return {
+        price: result.price ? Number(result.price) : null,
+        currency: result.currency || "RUB",
+        offer: result.offer || null,
+        dropoff: dropoff.address,
+        tariff: data.tariff,
+      };
     }
 
-    const result = (await response.json()) as {
-      price?: string;
-      currency?: string;
-      offer?: string;
-      code?: string;
-      message?: string;
-    };
-
-    if (result.code) {
-      throw new Error(result.message || `Yandex Delivery error: ${result.code}`);
+    if (lastText.includes("suitable_offer_not_found")) {
+      throw new Error(
+        "Яндекс Доставка не нашла подходящий тариф до этого пункта выдачи. Выберите другой ПВЗ."
+      );
     }
-
-    return {
-      price: result.price ? Number(result.price) : null,
-      currency: result.currency || "RUB",
-      offer: result.offer || null,
-    };
+    throw new Error("Не удалось рассчитать доставку. Попробуйте позже.");
   });
+
 
 export const createDeliveryOrder = createServerFn({ method: "POST" })
   .validator((data) => orderInputSchema.parse(data))
@@ -182,6 +256,8 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
 
     const items = defaultItems();
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
+    const dropoff = nearestDropoff(data.pickupPoint);
+    const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
 
     const { data: order, error: insertError } = await supabaseAdmin
       .from("orders")
@@ -189,9 +265,13 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         customer_name: data.customerName,
         customer_phone: data.customerPhone,
         customer_email: data.customerEmail || null,
-        address_from: data.addressFrom,
+        address_from: dropoff.address,
         address_to: pickupAddress,
-        comment: [`Доставка в ПВЗ (${data.pickupPoint.id})`, data.comment]
+        comment: [
+          `Самопривоз: сдаём посылку в ${dropoff.address}`,
+          `${tariffLabel}. Доставка в ПВЗ (${data.pickupPoint.id})`,
+          data.comment,
+        ]
           .filter(Boolean)
           .join(". "),
         items,
@@ -209,11 +289,15 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       emergency_contact_name: data.customerName,
       emergency_contact_phone: data.customerPhone,
       items,
+      client_requirements: { taxi_class: TARIFF_CLASSES[data.tariff][0] },
       route_points: [
         {
           point_id: 1,
           visit_order: 1,
-          address: { fullname: data.addressFrom },
+          address: {
+            fullname: dropoff.address,
+            coordinates: [dropoff.longitude, dropoff.latitude],
+          },
           contact: { name: data.customerName, phone: data.customerPhone },
           type: "source",
         },
@@ -229,8 +313,9 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
           pickup_point_id: data.pickupPoint.id,
         },
       ],
-      comment: data.comment || undefined,
+      comment: [`Самопривоз в ${dropoff.address}`, data.comment].filter(Boolean).join(". "),
     };
+
 
     const response = await fetch(
       `${YANDEX_DELIVERY_BASE_URL}/claims/create?request_id=${encodeURIComponent(requestId)}`,
