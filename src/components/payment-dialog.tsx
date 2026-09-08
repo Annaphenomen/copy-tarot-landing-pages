@@ -322,7 +322,8 @@ export function PaymentDialog({
                     <span className="block text-sm font-medium text-foreground">{option.title}</span>
                     <span className="block text-xs text-muted-foreground">{option.hint}</span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
 
 
