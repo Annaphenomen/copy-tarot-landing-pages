@@ -128,6 +128,7 @@ export function PaymentDialog({
           customerEmail: contacts.city.includes("@") ? contacts.city : undefined,
           addressFrom: contacts.addressFrom,
           addressTo: contacts.addressTo,
+          deliveryMethod: contacts.deliveryMethod,
         },
       });
       setChecking(false);
