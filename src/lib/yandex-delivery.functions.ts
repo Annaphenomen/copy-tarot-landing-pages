@@ -110,7 +110,9 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         customer_email: data.customerEmail || null,
         address_from: data.addressFrom,
         address_to: data.addressTo,
-        comment: data.comment || null,
+        comment: [data.deliveryMethod === "express" ? "Экспресс-доставка" : "Курьерская доставка", data.comment]
+          .filter(Boolean)
+          .join(". "),
         items,
         status: "pending",
       })
