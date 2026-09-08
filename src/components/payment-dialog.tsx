@@ -332,6 +332,10 @@ export function PaymentDialog({
                 onChange={(e) => {
                   setCityGeoId(Number(e.target.value));
                   setPoints([]);
+                  setPointQuery("");
+                  setSelectedPoint(null);
+                  setExpressPrice(null);
+                  setBasePrice(null);
                 }}
                 aria-label="Город"
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
