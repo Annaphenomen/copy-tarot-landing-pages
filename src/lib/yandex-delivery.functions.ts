@@ -185,53 +185,69 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
 export const calculateDeliveryPrice = createServerFn({ method: "POST" })
   .validator((data) => priceInputSchema.parse(data))
   .handler(async ({ data }) => {
-    const body = {
-      items: defaultItems(),
-      route_points: [
-        { id: 1, fullname: data.addressFrom },
-        {
-          id: 2,
-          fullname: data.pickupPoint.address,
-          coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
-        },
-      ],
-    };
+    const dropoff = nearestDropoff(data.pickupPoint);
+    let lastText = "";
 
-    const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/check-price`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(body),
-    });
+    for (const taxiClass of TARIFF_CLASSES[data.tariff]) {
+      const body = {
+        items: defaultItems(),
+        client_requirements: { taxi_class: taxiClass },
+        route_points: [
+          {
+            id: 1,
+            fullname: dropoff.address,
+            coordinates: [dropoff.longitude, dropoff.latitude],
+          },
+          {
+            id: 2,
+            fullname: data.pickupPoint.address,
+            coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
+          },
+        ],
+      };
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Yandex Delivery price error", response.status, text);
-      if (text.includes("suitable_offer_not_found")) {
-        throw new Error(
-          "Яндекс Доставка не нашла подходящий тариф до этого пункта выдачи. Выберите другой ПВЗ."
-        );
+      const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/check-price`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        lastText = await response.text();
+        console.error("Yandex Delivery price error", taxiClass, response.status, lastText);
+        continue;
       }
-      throw new Error("Не удалось рассчитать доставку. Попробуйте позже.");
+
+      const result = (await response.json()) as {
+        price?: string;
+        currency?: string;
+        offer?: string;
+        code?: string;
+        message?: string;
+      };
+
+      if (result.code) {
+        lastText = result.message || result.code;
+        continue;
+      }
+
+      return {
+        price: result.price ? Number(result.price) : null,
+        currency: result.currency || "RUB",
+        offer: result.offer || null,
+        dropoff: dropoff.address,
+        tariff: data.tariff,
+      };
     }
 
-    const result = (await response.json()) as {
-      price?: string;
-      currency?: string;
-      offer?: string;
-      code?: string;
-      message?: string;
-    };
-
-    if (result.code) {
-      throw new Error(result.message || `Yandex Delivery error: ${result.code}`);
+    if (lastText.includes("suitable_offer_not_found")) {
+      throw new Error(
+        "Яндекс Доставка не нашла подходящий тариф до этого пункта выдачи. Выберите другой ПВЗ."
+      );
     }
-
-    return {
-      price: result.price ? Number(result.price) : null,
-      currency: result.currency || "RUB",
-      offer: result.offer || null,
-    };
+    throw new Error("Не удалось рассчитать доставку. Попробуйте позже.");
   });
+
 
 export const createDeliveryOrder = createServerFn({ method: "POST" })
   .validator((data) => orderInputSchema.parse(data))
