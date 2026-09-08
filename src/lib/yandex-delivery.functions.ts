@@ -163,7 +163,15 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
     }
 
     const result = (await response.json()) as { points?: RawPickupPoint[] };
-    const query = (data.query ?? "").trim().toLowerCase();
+    const normalize = (value: string) =>
+      value
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .replace(/[^a-zа-я0-9]+/gi, " ")
+        .trim();
+    const tokens = normalize(data.query ?? "")
+      .split(" ")
+      .filter((token) => token.length > 1 || /\d/.test(token));
 
     const points = (result.points ?? [])
       .filter((p) => p.position && p.address?.full_address)
@@ -174,10 +182,13 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
         latitude: p.position!.latitude,
         longitude: p.position!.longitude,
       }))
-      .filter((p) =>
-        query ? `${p.name} ${p.address}`.toLowerCase().includes(query) : true
-      )
+      .filter((p) => {
+        if (tokens.length === 0) return true;
+        const haystack = normalize(`${p.name} ${p.address}`);
+        return tokens.every((token) => haystack.includes(token));
+      })
       .slice(0, 40);
+
 
     return { points };
   });
