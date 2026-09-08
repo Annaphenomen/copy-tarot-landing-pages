@@ -92,7 +92,8 @@ export function PaymentDialog({
       setChecking(false);
       setConsent(false);
       setContacts(null);
-      setDeliveryPrice(null);
+      setBasePrice(null);
+      setExpressPrice(null);
       setCalculatingDelivery(false);
       setPoints([]);
       setPointQuery("");
