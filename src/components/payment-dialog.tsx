@@ -293,7 +293,9 @@ export function PaymentDialog({
                 <span className="font-medium text-foreground">{total} ₽</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Доставка</span>
+                <span className="text-muted-foreground">
+                  Доставка · {contacts.deliveryMethod === "express" ? "Экспресс" : "Курьер"}
+                </span>
                 <span className="font-medium text-foreground">
                   {deliveryPrice !== null ? `${deliveryPrice} ₽` : "—"}
                 </span>
