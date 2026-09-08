@@ -189,7 +189,7 @@ export function PaymentDialog({
     }
   };
 
-  const finalTotal = total + (deliveryPrice ?? 0);
+  const finalTotal = total + expressSurcharge;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
