@@ -68,7 +68,8 @@ export function PaymentDialog({
   const [checking, setChecking] = useState(false);
   const [consent, setConsent] = useState(false);
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
-  const [deliveryPrice, setDeliveryPrice] = useState<number | null>(null);
+  const [basePrice, setBasePrice] = useState<number | null>(null);
+  const [expressPrice, setExpressPrice] = useState<number | null>(null);
   const [tariff, setTariff] = useState<Tariff>("standard");
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
 
@@ -91,7 +92,8 @@ export function PaymentDialog({
       setChecking(false);
       setConsent(false);
       setContacts(null);
-      setDeliveryPrice(null);
+      setBasePrice(null);
+      setExpressPrice(null);
       setCalculatingDelivery(false);
       setPoints([]);
       setPointQuery("");
@@ -99,6 +101,12 @@ export function PaymentDialog({
     }, 250);
     return () => clearTimeout(timer);
   }, [open]);
+
+  const expressSurcharge =
+    tariff === "express" && expressPrice !== null && basePrice !== null
+      ? Math.max(0, Math.round(expressPrice - basePrice))
+      : 0;
+
 
   const loadPoints = async () => {
     setLoadingPoints(true);
@@ -120,10 +128,17 @@ export function PaymentDialog({
     setSelectedPoint(point);
     setCalculatingDelivery(true);
     try {
-      const result = await calcDelivery({
-        data: { pickupPoint: point, tariff },
-      });
-      setDeliveryPrice(result.price);
+      const base = await calcDelivery({ data: { pickupPoint: point, tariff: "standard" } });
+      setBasePrice(base.price);
+      let express: number | null = null;
+      try {
+        const fast = await calcDelivery({ data: { pickupPoint: point, tariff: "express" } });
+        express = fast.price;
+      } catch {
+        express = null;
+      }
+      setExpressPrice(express);
+      if (express === null && tariff === "express") setTariff("standard");
       setStep("delivery");
     } catch (err) {
       toast.error(
@@ -135,10 +150,11 @@ export function PaymentDialog({
     }
   };
 
+
   const startPayment = async () => {
     const id = makeOrderId();
     setOrderId(id);
-    const nextTotal = total + (deliveryPrice ?? 0);
+    const nextTotal = total + expressSurcharge;
     const url = await QRCode.toDataURL(buildPaymentLink(id, nextTotal), {
       width: 512,
       margin: 1,
@@ -173,7 +189,7 @@ export function PaymentDialog({
     }
   };
 
-  const finalTotal = total + (deliveryPrice ?? 0);
+  const finalTotal = total + expressSurcharge;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -257,8 +273,8 @@ export function PaymentDialog({
               <div className="grid grid-cols-2 gap-2">
                 {(
                   [
-                    { id: "standard", title: "Базовая", hint: "Дешевле, 2–7 дней" },
-                    { id: "express", title: "Экспресс", hint: "Быстрее, дороже" },
+                    { id: "standard", title: "Базовая", hint: "Входит в цену" },
+                    { id: "express", title: "Экспресс", hint: "Доплата сверху" },
                   ] as { id: Tariff; title: string; hint: string }[]
                 ).map((option) => (
                   <button
@@ -370,12 +386,17 @@ export function PaymentDialog({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">
-                  {tariff === "express" ? "Экспресс-доставка" : "Базовая доставка"}
+                  {tariff === "express" ? "Доплата за экспресс" : "Доставка в ПВЗ"}
                 </span>
                 <span className="font-medium text-foreground">
-                  {deliveryPrice !== null ? `${deliveryPrice} ₽` : "—"}
+                  {tariff === "express"
+                    ? expressSurcharge > 0
+                      ? `${expressSurcharge} ₽`
+                      : "0 ₽"
+                    : "включена"}
                 </span>
               </div>
+
               <div className="flex items-center justify-between text-base">
                 <span className="font-medium text-foreground">Итого</span>
                 <span className="font-display text-xl font-semibold text-foreground">
