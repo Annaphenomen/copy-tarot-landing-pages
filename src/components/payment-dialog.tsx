@@ -148,7 +148,7 @@ export function PaymentDialog({
   const startPayment = async () => {
     const id = makeOrderId();
     setOrderId(id);
-    const nextTotal = total + (deliveryPrice ?? 0);
+    const nextTotal = total + expressSurcharge;
     const url = await QRCode.toDataURL(buildPaymentLink(id, nextTotal), {
       width: 512,
       margin: 1,
