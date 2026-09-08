@@ -89,6 +89,7 @@ export function PaymentDialog({
         data: {
           addressFrom: values.addressFrom,
           addressTo: values.addressTo,
+          deliveryMethod: values.deliveryMethod,
         },
       });
       setContacts(values);
