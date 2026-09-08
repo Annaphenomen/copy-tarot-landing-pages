@@ -273,8 +273,8 @@ export function PaymentDialog({
               <div className="grid grid-cols-2 gap-2">
                 {(
                   [
-                    { id: "standard", title: "Базовая", hint: "Дешевле, 2–7 дней" },
-                    { id: "express", title: "Экспресс", hint: "Быстрее, дороже" },
+                    { id: "standard", title: "Базовая", hint: "Входит в цену" },
+                    { id: "express", title: "Экспресс", hint: "Доплата сверху" },
                   ] as { id: Tariff; title: string; hint: string }[]
                 ).map((option) => (
                   <button
