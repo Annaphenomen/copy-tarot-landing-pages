@@ -386,12 +386,17 @@ export function PaymentDialog({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">
-                  {tariff === "express" ? "Экспресс-доставка" : "Базовая доставка"}
+                  {tariff === "express" ? "Доплата за экспресс" : "Доставка в ПВЗ"}
                 </span>
                 <span className="font-medium text-foreground">
-                  {deliveryPrice !== null ? `${deliveryPrice} ₽` : "—"}
+                  {tariff === "express"
+                    ? expressSurcharge > 0
+                      ? `${expressSurcharge} ₽`
+                      : "0 ₽"
+                    : "включена"}
                 </span>
               </div>
+
               <div className="flex items-center justify-between text-base">
                 <span className="font-medium text-foreground">Итого</span>
                 <span className="font-display text-xl font-semibold text-foreground">
