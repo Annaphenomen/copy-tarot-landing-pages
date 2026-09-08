@@ -342,10 +342,16 @@ export function PaymentDialog({
                 <Input
                   value={pointQuery}
                   onChange={(e) => setPointQuery(e.target.value)}
-                  placeholder="Улица или название ПВЗ"
-                  aria-label="Поиск пункта выдачи"
+                  placeholder="Фильтр: улица или район"
+                  aria-label="Фильтр пунктов выдачи"
                 />
-                <Button type="button" variant="outline" onClick={loadPoints} disabled={loadingPoints}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void loadPoints(cityGeoId)}
+                  disabled={loadingPoints}
+                  aria-label="Обновить список пунктов выдачи"
+                >
                   {loadingPoints ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -354,8 +360,14 @@ export function PaymentDialog({
                 </Button>
               </div>
 
+              <p className="text-xs text-muted-foreground">
+                {loadingPoints
+                  ? "Загружаем пункты выдачи…"
+                  : `Найдено пунктов: ${visiblePoints.length}`}
+              </p>
+
               <div className="max-h-64 space-y-2 overflow-y-auto">
-                {points.map((point) => (
+                {visiblePoints.map((point) => (
                   <button
                     key={point.id}
                     type="button"
