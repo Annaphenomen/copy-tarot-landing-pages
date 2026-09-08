@@ -22,12 +22,15 @@ import { calculateDeliveryPrice, createDeliveryOrder } from "@/lib/yandex-delive
 
 type Step = "contacts" | "delivery" | "qr" | "done";
 
+export type DeliveryMethod = "courier" | "express";
+
 export type OrderContacts = {
   name: string;
   contact: string;
   city: string;
   addressFrom: string;
   addressTo: string;
+  deliveryMethod: DeliveryMethod;
 };
 
 function makeOrderId() {
