@@ -23,6 +23,61 @@ export const PICKUP_CITIES: { name: string; geoId: number }[] = [
   { name: "Тюмень", geoId: 55 },
 ];
 
+// Наши точки самопривоза: посылку сдаём туда сами, курьер за ней не приезжает.
+export const DROPOFF_POINTS: {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}[] = [
+  { name: "Пермь", address: "Пермь, улица Революции, 52", latitude: 58.0002, longitude: 56.238 },
+  {
+    name: "Красноярск",
+    address: "Красноярск, Ярыгинская набережная, 11",
+    latitude: 55.993,
+    longitude: 92.8,
+  },
+  {
+    name: "Москва",
+    address: "Москва, улица Маршала Соколовского, 3",
+    latitude: 55.777,
+    longitude: 37.488,
+  },
+  {
+    name: "Александров",
+    address: "Александров, улица Гагарина, 23 корп. 1",
+    latitude: 56.397,
+    longitude: 38.72,
+  },
+];
+
+// Тарифы: базовый — самый дешёвый, экспресс — быстрее и дороже.
+const TARIFF_CLASSES: Record<"standard" | "express", string[]> = {
+  standard: ["delivery", "cargo", "courier"],
+  express: ["express", "courier"],
+};
+
+function distanceKm(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number }
+) {
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const lat1 = toRad(a.latitude);
+  const lat2 = toRad(b.latitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+// Ближайшая к покупателю наша точка сдачи — так доставка дешевле.
+export function nearestDropoff(target: { latitude: number; longitude: number }) {
+  return [...DROPOFF_POINTS].sort(
+    (a, b) => distanceKm(a, target) - distanceKm(b, target)
+  )[0]!;
+}
+
 const pickupPointSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -31,28 +86,31 @@ const pickupPointSchema = z.object({
   longitude: z.number(),
 });
 
+const tariffSchema = z.enum(["standard", "express"]).default("standard");
+
 const searchInputSchema = z.object({
   geoId: z.number(),
   query: z.string().optional(),
 });
 
 const priceInputSchema = z.object({
-  addressFrom: z.string().min(3, "Укажите адрес отправителя"),
   pickupPoint: pickupPointSchema,
+  tariff: tariffSchema,
 });
 
 const orderInputSchema = z.object({
   customerName: z.string().min(1, "Укажите имя"),
   customerPhone: z.string().min(6, "Укажите телефон"),
   customerEmail: z.string().email("Укажите корректный e-mail").optional().or(z.literal("")),
-  addressFrom: z.string().min(3, "Укажите адрес отправителя"),
   pickupPoint: pickupPointSchema,
+  tariff: tariffSchema,
   comment: z.string().optional(),
 });
 
 const statusInputSchema = z.object({
   claimId: z.string().min(1),
 });
+
 
 function getAuthHeaders() {
   const token = process.env["YANDEX_DELIVERY_TOKEN"];
