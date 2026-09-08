@@ -285,7 +285,15 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
       };
     }
 
-    throw new Error("Экспресс-доставка недоступна в этот пункт выдачи.");
+    console.warn("Express unavailable for pickup point", data.pickupPoint.id, lastText);
+    return {
+      price: null,
+      currency: "RUB",
+      offer: null,
+      dropoff: dropoff.address,
+      tariff: data.tariff,
+      deliveryDays: null,
+    };
   });
 
 
