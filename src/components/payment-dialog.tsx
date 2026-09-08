@@ -120,10 +120,17 @@ export function PaymentDialog({
     setSelectedPoint(point);
     setCalculatingDelivery(true);
     try {
-      const result = await calcDelivery({
-        data: { pickupPoint: point, tariff },
-      });
-      setDeliveryPrice(result.price);
+      const base = await calcDelivery({ data: { pickupPoint: point, tariff: "standard" } });
+      setBasePrice(base.price);
+      let express: number | null = null;
+      try {
+        const fast = await calcDelivery({ data: { pickupPoint: point, tariff: "express" } });
+        express = fast.price;
+      } catch {
+        express = null;
+      }
+      setExpressPrice(express);
+      if (express === null && tariff === "express") setTariff("standard");
       setStep("delivery");
     } catch (err) {
       toast.error(
@@ -134,6 +141,7 @@ export function PaymentDialog({
       setCalculatingDelivery(false);
     }
   };
+
 
   const startPayment = async () => {
     const id = makeOrderId();
