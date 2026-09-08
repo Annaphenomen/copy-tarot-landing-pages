@@ -166,6 +166,7 @@ export function PaymentDialog({
                   city: String(data.get("city") ?? ""),
                   addressFrom: String(data.get("addressFrom") ?? ""),
                   addressTo: String(data.get("addressTo") ?? ""),
+                  deliveryMethod,
                 });
               }}
             >
