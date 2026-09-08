@@ -139,7 +139,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         },
       ],
       client_requirements: {
-        taxi_class: "courier",
+        taxi_class: data.deliveryMethod,
       },
       comment: data.comment || undefined,
     };
