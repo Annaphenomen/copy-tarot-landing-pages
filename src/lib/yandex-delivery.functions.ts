@@ -3,9 +3,12 @@ import { z } from "zod";
 
 const YANDEX_DELIVERY_BASE_URL = "https://b2b.taxi.yandex.net/b2b/cargo/integration/v2";
 
+const deliveryMethodSchema = z.enum(["courier", "express"]).default("courier");
+
 const priceInputSchema = z.object({
   addressFrom: z.string().min(3, "Укажите адрес отправителя"),
   addressTo: z.string().min(3, "Укажите адрес получателя"),
+  deliveryMethod: deliveryMethodSchema,
 });
 
 const orderInputSchema = z.object({
@@ -14,6 +17,7 @@ const orderInputSchema = z.object({
   customerEmail: z.string().email("Укажите корректный e-mail").optional().or(z.literal("")),
   addressFrom: z.string().min(3, "Укажите адрес отправителя"),
   addressTo: z.string().min(3, "Укажите адрес получателя"),
+  deliveryMethod: deliveryMethodSchema,
   comment: z.string().optional(),
 });
 
