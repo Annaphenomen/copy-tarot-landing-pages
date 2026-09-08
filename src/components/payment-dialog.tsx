@@ -108,13 +108,13 @@ export function PaymentDialog({
       : 0;
 
 
-  const loadPoints = async () => {
+  const loadPoints = async (geoId: number) => {
     setLoadingPoints(true);
     try {
-      const result = await findPoints({ data: { geoId: cityGeoId, query: pointQuery } });
+      const result = await findPoints({ data: { geoId } });
       setPoints(result.points);
       if (result.points.length === 0) {
-        toast.info("Пункты выдачи не найдены. Попробуйте другой адрес или город.");
+        toast.info("В этом городе пока нет пунктов выдачи.");
       }
     } catch (err) {
       toast.error("Не удалось загрузить пункты выдачи. Попробуйте позже.");
@@ -123,6 +123,27 @@ export function PaymentDialog({
       setLoadingPoints(false);
     }
   };
+
+  // Список ПВЗ подгружается сразу при входе на шаг и при смене города.
+  useEffect(() => {
+    if (step !== "point") return;
+    void loadPoints(cityGeoId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, cityGeoId]);
+
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/ё/g, "е")
+      .replace(/[^a-zа-я0-9]+/gi, " ")
+      .trim();
+
+  const queryTokens = normalize(pointQuery).split(" ").filter(Boolean);
+  const visiblePoints = points.filter((point) => {
+    if (queryTokens.length === 0) return true;
+    const haystack = normalize(`${point.name} ${point.address}`);
+    return queryTokens.every((token) => haystack.includes(token));
+  });
 
   const startDeliveryCalculation = async (point: PickupPoint) => {
     setSelectedPoint(point);
