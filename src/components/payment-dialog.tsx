@@ -102,6 +102,12 @@ export function PaymentDialog({
     return () => clearTimeout(timer);
   }, [open]);
 
+  const expressSurcharge =
+    tariff === "express" && expressPrice !== null && basePrice !== null
+      ? Math.max(0, Math.round(expressPrice - basePrice))
+      : 0;
+
+
   const loadPoints = async () => {
     setLoadingPoints(true);
     try {
