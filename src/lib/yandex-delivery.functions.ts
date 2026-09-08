@@ -130,11 +130,15 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       items,
       route_points: [
         {
+          point_id: 1,
+          visit_order: 1,
           address: { fullname: data.addressFrom },
           contact: { name: data.customerName, phone: data.customerPhone },
           type: "source",
         },
         {
+          point_id: 2,
+          visit_order: 2,
           address: { fullname: data.addressTo },
           contact: { name: data.customerName, phone: data.customerPhone },
           type: "destination",
