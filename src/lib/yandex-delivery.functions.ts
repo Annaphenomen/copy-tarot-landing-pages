@@ -3,9 +3,12 @@ import { z } from "zod";
 
 const YANDEX_DELIVERY_BASE_URL = "https://b2b.taxi.yandex.net/b2b/cargo/integration/v2";
 
+const deliveryMethodSchema = z.enum(["courier", "express"]).default("courier");
+
 const priceInputSchema = z.object({
   addressFrom: z.string().min(3, "Укажите адрес отправителя"),
   addressTo: z.string().min(3, "Укажите адрес получателя"),
+  deliveryMethod: deliveryMethodSchema,
 });
 
 const orderInputSchema = z.object({
@@ -14,6 +17,7 @@ const orderInputSchema = z.object({
   customerEmail: z.string().email("Укажите корректный e-mail").optional().or(z.literal("")),
   addressFrom: z.string().min(3, "Укажите адрес отправителя"),
   addressTo: z.string().min(3, "Укажите адрес получателя"),
+  deliveryMethod: deliveryMethodSchema,
   comment: z.string().optional(),
 });
 
@@ -49,15 +53,10 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
     const body = {
       items: defaultItems(),
       route_points: [
-        {
-          address: { fullname: data.addressFrom },
-          type: "source",
-        },
-        {
-          address: { fullname: data.addressTo },
-          type: "destination",
-        },
+        { id: 1, fullname: data.addressFrom },
+        { id: 2, fullname: data.addressTo },
       ],
+      requirements: { taxi_class: data.deliveryMethod },
     };
 
     const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/check-price`, {
@@ -68,7 +67,13 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Yandex Delivery price error: ${response.status} ${text}`);
+      console.error("Yandex Delivery price error", response.status, text);
+      if (text.includes("suitable_offer_not_found")) {
+        throw new Error(
+          "Яндекс Доставка не нашла подходящий тариф для этого маршрута. Проверьте адреса или выберите другой способ доставки."
+        );
+      }
+      throw new Error("Не удалось рассчитать доставку. Попробуйте позже.");
     }
 
     const result = (await response.json()) as {
@@ -105,7 +110,9 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         customer_email: data.customerEmail || null,
         address_from: data.addressFrom,
         address_to: data.addressTo,
-        comment: data.comment || null,
+        comment: [data.deliveryMethod === "express" ? "Экспресс-доставка" : "Курьерская доставка", data.comment]
+          .filter(Boolean)
+          .join(". "),
         items,
         status: "pending",
       })
@@ -123,18 +130,22 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       items,
       route_points: [
         {
+          point_id: 1,
+          visit_order: 1,
           address: { fullname: data.addressFrom },
           contact: { name: data.customerName, phone: data.customerPhone },
           type: "source",
         },
         {
+          point_id: 2,
+          visit_order: 2,
           address: { fullname: data.addressTo },
           contact: { name: data.customerName, phone: data.customerPhone },
           type: "destination",
         },
       ],
       client_requirements: {
-        taxi_class: "courier",
+        taxi_class: data.deliveryMethod,
       },
       comment: data.comment || undefined,
     };

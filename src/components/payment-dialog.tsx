@@ -22,12 +22,15 @@ import { calculateDeliveryPrice, createDeliveryOrder } from "@/lib/yandex-delive
 
 type Step = "contacts" | "delivery" | "qr" | "done";
 
+export type DeliveryMethod = "courier" | "express";
+
 export type OrderContacts = {
   name: string;
   contact: string;
   city: string;
   addressFrom: string;
   addressTo: string;
+  deliveryMethod: DeliveryMethod;
 };
 
 function makeOrderId() {
@@ -59,6 +62,7 @@ export function PaymentDialog({
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
   const [deliveryPrice, setDeliveryPrice] = useState<number | null>(null);
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("courier");
 
   const calcDelivery = useServerFn(calculateDeliveryPrice);
   const createOrder = useServerFn(createDeliveryOrder);
@@ -85,6 +89,7 @@ export function PaymentDialog({
         data: {
           addressFrom: values.addressFrom,
           addressTo: values.addressTo,
+          deliveryMethod: values.deliveryMethod,
         },
       });
       setContacts(values);
@@ -123,6 +128,7 @@ export function PaymentDialog({
           customerEmail: contacts.city.includes("@") ? contacts.city : undefined,
           addressFrom: contacts.addressFrom,
           addressTo: contacts.addressTo,
+          deliveryMethod: contacts.deliveryMethod,
         },
       });
       setChecking(false);
@@ -161,6 +167,7 @@ export function PaymentDialog({
                   city: String(data.get("city") ?? ""),
                   addressFrom: String(data.get("addressFrom") ?? ""),
                   addressTo: String(data.get("addressTo") ?? ""),
+                  deliveryMethod,
                 });
               }}
             >
@@ -185,6 +192,34 @@ export function PaymentDialog({
                 placeholder="Адрес получателя (куда доставить)"
                 aria-label="Адрес получателя"
               />
+
+              <fieldset className="space-y-2">
+                <legend className="mb-2 text-sm text-muted-foreground">Способ доставки</legend>
+                <div className="grid grid-cols-2 gap-3">
+                  {(
+                    [
+                      { value: "courier", label: "Курьер", hint: "В течение дня" },
+                      { value: "express", label: "Экспресс", hint: "1–2 часа" },
+                    ] as const
+                  ).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setDeliveryMethod(option.value)}
+                      aria-pressed={deliveryMethod === option.value}
+                      className={`rounded-xl border p-3 text-left transition-colors ${
+                        deliveryMethod === option.value
+                          ? "border-primary bg-secondary/50"
+                          : "border-border/40 hover:border-border"
+                      }`}
+                    >
+                      <span className="block text-sm font-medium text-foreground">{option.label}</span>
+                      <span className="block text-xs text-muted-foreground">{option.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
 
               <label className="flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
                 <Checkbox
@@ -258,7 +293,9 @@ export function PaymentDialog({
                 <span className="font-medium text-foreground">{total} ₽</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Доставка</span>
+                <span className="text-muted-foreground">
+                  Доставка · {contacts.deliveryMethod === "express" ? "Экспресс" : "Курьер"}
+                </span>
                 <span className="font-medium text-foreground">
                   {deliveryPrice !== null ? `${deliveryPrice} ₽` : "—"}
                 </span>
