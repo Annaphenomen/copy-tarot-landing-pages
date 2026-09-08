@@ -62,6 +62,7 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
           type: "destination",
         },
       ],
+      client_requirements: { taxi_class: data.deliveryMethod },
     };
 
     const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/check-price`, {
