@@ -62,6 +62,7 @@ export function PaymentDialog({
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
   const [deliveryPrice, setDeliveryPrice] = useState<number | null>(null);
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("courier");
 
   const calcDelivery = useServerFn(calculateDeliveryPrice);
   const createOrder = useServerFn(createDeliveryOrder);
