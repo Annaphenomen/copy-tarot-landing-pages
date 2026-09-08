@@ -108,13 +108,13 @@ export function PaymentDialog({
       : 0;
 
 
-  const loadPoints = async () => {
+  const loadPoints = async (geoId: number) => {
     setLoadingPoints(true);
     try {
-      const result = await findPoints({ data: { geoId: cityGeoId, query: pointQuery } });
+      const result = await findPoints({ data: { geoId } });
       setPoints(result.points);
       if (result.points.length === 0) {
-        toast.info("Пункты выдачи не найдены. Попробуйте другой адрес или город.");
+        toast.info("В этом городе пока нет пунктов выдачи.");
       }
     } catch (err) {
       toast.error("Не удалось загрузить пункты выдачи. Попробуйте позже.");
@@ -123,6 +123,27 @@ export function PaymentDialog({
       setLoadingPoints(false);
     }
   };
+
+  // Список ПВЗ подгружается сразу при входе на шаг и при смене города.
+  useEffect(() => {
+    if (step !== "point") return;
+    void loadPoints(cityGeoId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, cityGeoId]);
+
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/ё/g, "е")
+      .replace(/[^a-zа-я0-9]+/gi, " ")
+      .trim();
+
+  const queryTokens = normalize(pointQuery).split(" ").filter(Boolean);
+  const visiblePoints = points.filter((point) => {
+    if (queryTokens.length === 0) return true;
+    const haystack = normalize(`${point.name} ${point.address}`);
+    return queryTokens.every((token) => haystack.includes(token));
+  });
 
   const startDeliveryCalculation = async (point: PickupPoint) => {
     setSelectedPoint(point);
@@ -283,12 +304,16 @@ export function PaymentDialog({
                           : "Доплата сверху",
                     },
                   ] as { id: Tariff; title: string; hint: string }[]
-                ).map((option) => (
+                ).map((option) => {
+                  const disabled =
+                    option.id === "express" && selectedPoint !== null && expressPrice === null;
+                  return (
                   <button
                     key={option.id}
                     type="button"
+                    disabled={disabled}
                     onClick={() => setTariff(option.id)}
-                    className={`rounded-xl border p-3 text-left transition-colors ${
+                    className={`rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                       tariff === option.id
                         ? "border-primary bg-primary/10"
                         : "border-border/40 hover:border-primary/50"
@@ -297,7 +322,8 @@ export function PaymentDialog({
                     <span className="block text-sm font-medium text-foreground">{option.title}</span>
                     <span className="block text-xs text-muted-foreground">{option.hint}</span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
 
 
@@ -306,6 +332,10 @@ export function PaymentDialog({
                 onChange={(e) => {
                   setCityGeoId(Number(e.target.value));
                   setPoints([]);
+                  setPointQuery("");
+                  setSelectedPoint(null);
+                  setExpressPrice(null);
+                  setBasePrice(null);
                 }}
                 aria-label="Город"
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
@@ -321,10 +351,16 @@ export function PaymentDialog({
                 <Input
                   value={pointQuery}
                   onChange={(e) => setPointQuery(e.target.value)}
-                  placeholder="Улица или название ПВЗ"
-                  aria-label="Поиск пункта выдачи"
+                  placeholder="Фильтр: улица или район"
+                  aria-label="Фильтр пунктов выдачи"
                 />
-                <Button type="button" variant="outline" onClick={loadPoints} disabled={loadingPoints}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void loadPoints(cityGeoId)}
+                  disabled={loadingPoints}
+                  aria-label="Обновить список пунктов выдачи"
+                >
                   {loadingPoints ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -333,8 +369,14 @@ export function PaymentDialog({
                 </Button>
               </div>
 
+              <p className="text-xs text-muted-foreground">
+                {loadingPoints
+                  ? "Загружаем пункты выдачи…"
+                  : `Найдено пунктов: ${visiblePoints.length}`}
+              </p>
+
               <div className="max-h-64 space-y-2 overflow-y-auto">
-                {points.map((point) => (
+                {visiblePoints.map((point) => (
                   <button
                     key={point.id}
                     type="button"
@@ -349,9 +391,9 @@ export function PaymentDialog({
                     </span>
                   </button>
                 ))}
-                {points.length === 0 && !loadingPoints && (
+                {visiblePoints.length === 0 && !loadingPoints && (
                   <p className="py-6 text-center text-sm text-muted-foreground">
-                    Нажмите поиск, чтобы увидеть пункты выдачи в выбранном городе.
+                    Ничего не найдено — очистите фильтр или выберите другой город.
                   </p>
                 )}
               </div>
