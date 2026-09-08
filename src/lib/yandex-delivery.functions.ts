@@ -187,7 +187,8 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
         const haystack = normalize(`${p.name} ${p.address}`);
         return tokens.every((token) => haystack.includes(token));
       })
-      .slice(0, 40);
+      .sort((a, b) => a.address.localeCompare(b.address, "ru"))
+      .slice(0, 500);
 
 
     return { points };
