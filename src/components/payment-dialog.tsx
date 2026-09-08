@@ -304,12 +304,16 @@ export function PaymentDialog({
                           : "Доплата сверху",
                     },
                   ] as { id: Tariff; title: string; hint: string }[]
-                ).map((option) => (
+                ).map((option) => {
+                  const disabled =
+                    option.id === "express" && selectedPoint !== null && expressPrice === null;
+                  return (
                   <button
                     key={option.id}
                     type="button"
+                    disabled={disabled}
                     onClick={() => setTariff(option.id)}
-                    className={`rounded-xl border p-3 text-left transition-colors ${
+                    className={`rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                       tariff === option.id
                         ? "border-primary bg-primary/10"
                         : "border-border/40 hover:border-primary/50"
