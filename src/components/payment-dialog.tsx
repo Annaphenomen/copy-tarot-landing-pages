@@ -25,8 +25,7 @@ import {
 
 type Step = "contacts" | "point" | "delivery" | "qr" | "done";
 
-// Адрес склада, откуда курьер забирает посылку для передачи в пункт выдачи.
-const WAREHOUSE_ADDRESS = "Москва, Пресненская набережная, 12";
+type Tariff = "standard" | "express";
 
 export type PickupPoint = {
   id: string;
@@ -70,6 +69,7 @@ export function PaymentDialog({
   const [consent, setConsent] = useState(false);
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
   const [deliveryPrice, setDeliveryPrice] = useState<number | null>(null);
+  const [tariff, setTariff] = useState<Tariff>("standard");
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
 
   const [cityGeoId, setCityGeoId] = useState<number>(PICKUP_CITIES[0]!.geoId);
@@ -121,7 +121,7 @@ export function PaymentDialog({
     setCalculatingDelivery(true);
     try {
       const result = await calcDelivery({
-        data: { addressFrom: WAREHOUSE_ADDRESS, pickupPoint: point },
+        data: { pickupPoint: point, tariff },
       });
       setDeliveryPrice(result.price);
       setStep("delivery");
@@ -157,8 +157,8 @@ export function PaymentDialog({
           customerName: contacts.name,
           customerPhone: contacts.contact,
           customerEmail: contacts.email || undefined,
-          addressFrom: WAREHOUSE_ADDRESS,
           pickupPoint: selectedPoint,
+          tariff,
         },
       });
       setChecking(false);
@@ -345,7 +345,9 @@ export function PaymentDialog({
                 <span className="font-medium text-foreground">{total} ₽</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Доставка в ПВЗ</span>
+                <span className="text-muted-foreground">
+                  {tariff === "express" ? "Экспресс-доставка" : "Базовая доставка"}
+                </span>
                 <span className="font-medium text-foreground">
                   {deliveryPrice !== null ? `${deliveryPrice} ₽` : "—"}
                 </span>
