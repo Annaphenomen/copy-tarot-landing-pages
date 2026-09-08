@@ -197,35 +197,68 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
   .validator((data) => priceInputSchema.parse(data))
   .handler(async ({ data }) => {
     const dropoff = nearestDropoff(data.pickupPoint);
-    let lastText = "";
 
-    for (const taxiClass of TARIFF_CLASSES[data.tariff]) {
-      const body = {
-        items: defaultItems(),
-        client_requirements: { taxi_class: taxiClass },
-        route_points: [
-          {
-            id: 1,
-            fullname: dropoff.address,
-            coordinates: [dropoff.longitude, dropoff.latitude],
-          },
-          {
-            id: 2,
-            fullname: data.pickupPoint.address,
-            coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
-          },
-        ],
+    // Базовый тариф считаем через «Платформу»: посылку мы сдаём сами, курьер не нужен.
+    if (data.tariff === "standard") {
+      const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/pricing-calculator`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          client_price: 3333,
+          total_assessed_price: 3333,
+          total_weight: 500,
+          tariff: "self_pickup",
+          source: { address: dropoff.address },
+          destination: { platform_station_id: data.pickupPoint.id },
+        }),
+      });
+
+      const text = await response.text();
+      if (!response.ok) {
+        console.error("Yandex pricing-calculator error", response.status, text);
+        throw new Error("Не удалось рассчитать доставку в этот пункт выдачи.");
+      }
+
+      const result = JSON.parse(text) as { pricing_total?: string; delivery_days?: number };
+      const price = Number.parseFloat(String(result.pricing_total ?? "").replace(",", "."));
+
+      return {
+        price: Number.isFinite(price) ? Math.round(price) : null,
+        currency: "RUB",
+        offer: null,
+        dropoff: dropoff.address,
+        tariff: data.tariff,
+        deliveryDays: result.delivery_days ?? null,
       };
+    }
 
+    // Экспресс доступен не везде — считаем через cargo API.
+    let lastText = "";
+    for (const taxiClass of TARIFF_CLASSES.express) {
       const response = await fetch(`${YANDEX_DELIVERY_BASE_URL}/check-price`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          items: defaultItems(),
+          client_requirements: { taxi_class: taxiClass },
+          route_points: [
+            {
+              id: 1,
+              fullname: dropoff.address,
+              coordinates: [dropoff.longitude, dropoff.latitude],
+            },
+            {
+              id: 2,
+              fullname: data.pickupPoint.address,
+              coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
+            },
+          ],
+        }),
       });
 
       if (!response.ok) {
         lastText = await response.text();
-        console.error("Yandex Delivery price error", taxiClass, response.status, lastText);
+        console.error("Yandex express price error", taxiClass, response.status, lastText);
         continue;
       }
 
@@ -243,21 +276,18 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
       }
 
       return {
-        price: result.price ? Number(result.price) : null,
+        price: result.price ? Math.round(Number(result.price)) : null,
         currency: result.currency || "RUB",
         offer: result.offer || null,
         dropoff: dropoff.address,
         tariff: data.tariff,
+        deliveryDays: null,
       };
     }
 
-    if (lastText.includes("suitable_offer_not_found")) {
-      throw new Error(
-        "Яндекс Доставка не нашла подходящий тариф до этого пункта выдачи. Выберите другой ПВЗ."
-      );
-    }
-    throw new Error("Не удалось рассчитать доставку. Попробуйте позже.");
+    throw new Error("Экспресс-доставка недоступна в этот пункт выдачи.");
   });
+
 
 
 export const createDeliveryOrder = createServerFn({ method: "POST" })
