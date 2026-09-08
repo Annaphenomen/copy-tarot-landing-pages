@@ -192,6 +192,34 @@ export function PaymentDialog({
                 aria-label="Адрес получателя"
               />
 
+              <fieldset className="space-y-2">
+                <legend className="mb-2 text-sm text-muted-foreground">Способ доставки</legend>
+                <div className="grid grid-cols-2 gap-3">
+                  {(
+                    [
+                      { value: "courier", label: "Курьер", hint: "В течение дня" },
+                      { value: "express", label: "Экспресс", hint: "1–2 часа" },
+                    ] as const
+                  ).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setDeliveryMethod(option.value)}
+                      aria-pressed={deliveryMethod === option.value}
+                      className={`rounded-xl border p-3 text-left transition-colors ${
+                        deliveryMethod === option.value
+                          ? "border-primary bg-secondary/50"
+                          : "border-border/40 hover:border-border"
+                      }`}
+                    >
+                      <span className="block text-sm font-medium text-foreground">{option.label}</span>
+                      <span className="block text-xs text-muted-foreground">{option.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+
               <label className="flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
                 <Checkbox
                   className="mt-0.5"
