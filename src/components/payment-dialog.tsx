@@ -254,6 +254,30 @@ export function PaymentDialog({
             </DialogHeader>
 
             <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    { id: "standard", title: "Базовая", hint: "Дешевле, 2–7 дней" },
+                    { id: "express", title: "Экспресс", hint: "Быстрее, дороже" },
+                  ] as { id: Tariff; title: string; hint: string }[]
+                ).map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setTariff(option.id)}
+                    className={`rounded-xl border p-3 text-left transition-colors ${
+                      tariff === option.id
+                        ? "border-primary bg-primary/10"
+                        : "border-border/40 hover:border-primary/50"
+                    }`}
+                  >
+                    <span className="block text-sm font-medium text-foreground">{option.title}</span>
+                    <span className="block text-xs text-muted-foreground">{option.hint}</span>
+                  </button>
+                ))}
+              </div>
+
+
               <select
                 value={cityGeoId}
                 onChange={(e) => {
