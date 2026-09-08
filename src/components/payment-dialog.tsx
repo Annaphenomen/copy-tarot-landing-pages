@@ -274,7 +274,14 @@ export function PaymentDialog({
                 {(
                   [
                     { id: "standard", title: "Базовая", hint: "Входит в цену" },
-                    { id: "express", title: "Экспресс", hint: "Доплата сверху" },
+                    {
+                      id: "express",
+                      title: "Экспресс",
+                      hint:
+                        selectedPoint && expressPrice === null
+                          ? "Недоступно для этого ПВЗ"
+                          : "Доплата сверху",
+                    },
                   ] as { id: Tariff; title: string; hint: string }[]
                 ).map((option) => (
                   <button
