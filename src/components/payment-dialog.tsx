@@ -382,9 +382,9 @@ export function PaymentDialog({
                     </span>
                   </button>
                 ))}
-                {points.length === 0 && !loadingPoints && (
+                {visiblePoints.length === 0 && !loadingPoints && (
                   <p className="py-6 text-center text-sm text-muted-foreground">
-                    Нажмите поиск, чтобы увидеть пункты выдачи в выбранном городе.
+                    Ничего не найдено — очистите фильтр или выберите другой город.
                   </p>
                 )}
               </div>
