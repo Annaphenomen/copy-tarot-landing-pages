@@ -256,6 +256,8 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
 
     const items = defaultItems();
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
+    const dropoff = nearestDropoff(data.pickupPoint);
+    const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
 
     const { data: order, error: insertError } = await supabaseAdmin
       .from("orders")
@@ -263,9 +265,13 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         customer_name: data.customerName,
         customer_phone: data.customerPhone,
         customer_email: data.customerEmail || null,
-        address_from: data.addressFrom,
+        address_from: dropoff.address,
         address_to: pickupAddress,
-        comment: [`Доставка в ПВЗ (${data.pickupPoint.id})`, data.comment]
+        comment: [
+          `Самопривоз: сдаём посылку в ${dropoff.address}`,
+          `${tariffLabel}. Доставка в ПВЗ (${data.pickupPoint.id})`,
+          data.comment,
+        ]
           .filter(Boolean)
           .join(". "),
         items,
@@ -283,11 +289,15 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       emergency_contact_name: data.customerName,
       emergency_contact_phone: data.customerPhone,
       items,
+      client_requirements: { taxi_class: TARIFF_CLASSES[data.tariff][0] },
       route_points: [
         {
           point_id: 1,
           visit_order: 1,
-          address: { fullname: data.addressFrom },
+          address: {
+            fullname: dropoff.address,
+            coordinates: [dropoff.longitude, dropoff.latitude],
+          },
           contact: { name: data.customerName, phone: data.customerPhone },
           type: "source",
         },
@@ -303,8 +313,9 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
           pickup_point_id: data.pickupPoint.id,
         },
       ],
-      comment: data.comment || undefined,
+      comment: [`Самопривоз в ${dropoff.address}`, data.comment].filter(Boolean).join(". "),
     };
+
 
     const response = await fetch(
       `${YANDEX_DELIVERY_BASE_URL}/claims/create?request_id=${encodeURIComponent(requestId)}`,
