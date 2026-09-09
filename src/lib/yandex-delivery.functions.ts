@@ -148,6 +148,20 @@ type RawPickupPoint = {
   schedule?: unknown;
 };
 
+// Номер заказа: сквозной счётчик в базе, покупателю показываем перемешанный код.
+export const reserveOrderNumber = createServerFn({ method: "POST" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await (supabaseAdmin as any).rpc("next_order_code");
+
+  if (error || !data?.[0]) {
+    console.error("next_order_code error", error);
+    // Запасной вариант, чтобы оформление не сорвалось.
+    return { orderNumber: `RS-${Date.now().toString().slice(-3)}`, orderSeq: null as number | null };
+  }
+
+  return { orderNumber: data[0].code as string, orderSeq: data[0].seq as number };
+});
+
 // Поиск любого населённого пункта России по названию (город, посёлок, село).
 export const searchCities = createServerFn({ method: "POST" })
   .validator((data) => citySearchSchema.parse(data))
