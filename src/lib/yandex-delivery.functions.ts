@@ -363,7 +363,7 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     // Базовый тариф считаем через «Платформу»: посылку мы сдаём сами, курьер не нужен.
     if (data.tariff === "standard") {
-      const best = await cheapestDropoff(data.pickupPoint);
+      const best = await cheapestDropoff(data.pickupPoint, data.quantity);
 
       if (best.price === null) {
         throw new Error("Не удалось рассчитать доставку в этот пункт выдачи.");
