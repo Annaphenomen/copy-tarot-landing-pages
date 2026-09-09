@@ -319,7 +319,7 @@ export function PaymentDialog({
               </p>
 
               <div className="max-h-64 space-y-2 overflow-y-auto">
-                {visiblePoints.map((point) => (
+                {visiblePoints.slice(0, 100).map((point) => (
                   <button
                     key={point.id}
                     type="button"
