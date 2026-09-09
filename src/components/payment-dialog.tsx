@@ -131,7 +131,9 @@ export function PaymentDialog({
   const visiblePoints = points.filter((point) => {
     if (queryTokens.length === 0) return true;
     const words = normalize(`${point.name} ${point.address}`).split(" ").filter(Boolean);
-    return queryTokens.every((token) => words.some((word) => word.startsWith(token)));
+    return queryTokens.every((token) =>
+      words.some((word) => word.startsWith(token) || (token.length >= 3 && word.includes(token)))
+    );
   });
 
   const startDeliveryCalculation = async (point: PickupPoint) => {
