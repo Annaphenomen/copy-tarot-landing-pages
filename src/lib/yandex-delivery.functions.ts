@@ -110,6 +110,7 @@ const orderInputSchema = z.object({
   tariff: tariffSchema,
   comment: z.string().optional(),
   orderNumber: z.string().optional(),
+  orderSeq: z.number().optional(),
 });
 
 const statusInputSchema = z.object({
@@ -350,7 +351,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
     const dropoff = nearestDropoff(data.pickupPoint);
     const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
-    const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-6)}`;
+    const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-3)}`;
 
     const { data: order, error: insertError } = await supabaseAdmin
       .from("orders")
@@ -369,6 +370,8 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
           .filter(Boolean)
           .join(". "),
         items,
+        order_number: orderNumber,
+        order_seq: data.orderSeq ?? null,
         status: "pending",
       })
       .select("id")
@@ -461,6 +464,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         idempotencyKey: `order-notification-${order.id}`,
         templateData: {
           orderNumber,
+          orderSeq: data.orderSeq ? String(data.orderSeq) : "—",
           orderId: order.id,
           customerName: data.customerName,
           customerPhone: data.customerPhone,
