@@ -88,6 +88,10 @@ const pickupPointSchema = z.object({
 
 const tariffSchema = z.enum(["standard", "express"]).default("standard");
 
+const citySearchSchema = z.object({
+  query: z.string().min(2),
+});
+
 const searchInputSchema = z.object({
   geoId: z.number(),
   query: z.string().optional(),
