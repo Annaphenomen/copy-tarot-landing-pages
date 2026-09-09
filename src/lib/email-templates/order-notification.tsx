@@ -16,6 +16,7 @@ import { ORDER_NOTIFICATION_EMAIL } from '@/lib/email-config'
 
 export interface OrderNotificationProps {
   orderNumber?: string
+  orderSeq?: string
   orderId?: string
   customerName?: string
   customerPhone?: string
@@ -46,7 +47,8 @@ function TRow({ label, value }: { label: string; value: string }) {
 }
 
 export function OrderNotificationEmail({
-  orderNumber = 'RS-000000',
+  orderNumber = 'RS-000',
+  orderSeq = '—',
   orderId = '—',
   customerName = '—',
   customerPhone = '—',
@@ -61,6 +63,7 @@ export function OrderNotificationEmail({
 }: OrderNotificationProps) {
   const tsv = [
     orderNumber,
+    orderSeq,
     createdAt,
     customerName,
     customerPhone,
@@ -84,6 +87,7 @@ export function OrderNotificationEmail({
           </Heading>
           <Section>
             <TRow label="Номер заказа" value={orderNumber} />
+            <TRow label="Заказ по счёту" value={orderSeq} />
             <TRow label="Дата" value={createdAt} />
             <TRow label="Клиент" value={customerName} />
             <TRow label="Телефон" value={customerPhone} />
@@ -123,7 +127,8 @@ export const template = {
   subject: (data: Record<string, any>) =>
     `Новый заказ ${data['orderNumber'] ?? ''} — ${data['total'] ?? ''}`,
   previewData: {
-    orderNumber: 'RS-123456',
+    orderNumber: 'RS-137',
+    orderSeq: '1',
     orderId: '7f3c1e2a-0000-4000-8000-000000000000',
     customerName: 'Анна Феномен',
     customerPhone: '+7 900 000-00-00',
