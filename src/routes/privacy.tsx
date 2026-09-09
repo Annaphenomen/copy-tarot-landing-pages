@@ -123,8 +123,8 @@ function PrivacyPage() {
           <h2 className="font-display text-xl text-foreground">7. Контактная информация</h2>
           <p>
             По всем вопросам, связанным с обработкой персональных данных, можно обращаться по e-mail:{" "}
-            <a className="text-primary hover:underline" href="mailto:phenomen.ooo@yandex.ru">
-              phenomen.ooo@yandex.ru
+            <a className="text-primary hover:underline" href="mailto:taroroflan@ya.ru">
+              taroroflan@ya.ru
             </a>
             .
           </p>

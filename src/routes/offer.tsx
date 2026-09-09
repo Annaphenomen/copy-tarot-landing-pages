@@ -143,8 +143,8 @@ function OfferPage() {
           <p>КПП банка: 590443002</p>
           <p>
             E-mail:{" "}
-            <a className="text-primary hover:underline" href="mailto:phenomen.ooo@yandex.ru">
-              phenomen.ooo@yandex.ru
+            <a className="text-primary hover:underline" href="mailto:taroroflan@ya.ru">
+              taroroflan@ya.ru
             </a>
           </p>
         </section>
