@@ -53,11 +53,13 @@ export function PaymentDialog({
   open,
   onOpenChange,
   total,
+  quantity,
   onPaid,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   total: number;
+  quantity: number;
   onPaid: () => void;
 }) {
   const [step, setStep] = useState<Step>("contacts");
@@ -180,7 +182,9 @@ export function PaymentDialog({
     setSelectedPoint(point);
     setCalculatingDelivery(true);
     try {
-      const base = await calcDelivery({ data: { pickupPoint: point, tariff: "standard" } });
+      const base = await calcDelivery({
+        data: { pickupPoint: point, tariff: "standard", quantity: Math.max(1, quantity) },
+      });
       setBasePrice(base.price);
       setStep("delivery");
     } catch (err) {
@@ -217,6 +221,7 @@ export function PaymentDialog({
           customerEmail: contacts.email || undefined,
           pickupPoint: selectedPoint,
           tariff: "standard",
+          quantity: Math.max(1, quantity),
           orderNumber: orderId || undefined,
           orderSeq: orderSeq ?? undefined,
         },
