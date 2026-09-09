@@ -191,7 +191,7 @@ async function priceFromDropoff(dropoff: (typeof DROPOFF_POINTS)[number], statio
 
   const text = await response.text();
   if (!response.ok) {
-    console.error("Yandex pricing-calculator error", dropoffAddress, response.status, text);
+    console.error("Yandex pricing-calculator error", dropoff.address, response.status, text);
     return null;
   }
 
@@ -210,7 +210,7 @@ export async function cheapestDropoff(target: {
 }) {
   const quotes = await Promise.all(
     DROPOFF_POINTS.map(async (point) => {
-      const quote = await priceFromDropoff(point.address, target.id);
+      const quote = await priceFromDropoff(point, target.id);
       return quote ? { point, ...quote } : null;
     })
   );
