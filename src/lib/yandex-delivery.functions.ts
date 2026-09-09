@@ -319,6 +319,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         address_from: dropoff.address,
         address_to: pickupAddress,
         comment: [
+          `Заказ ${orderNumber}`,
           `Самопривоз: сдаём посылку в ${dropoff.address}`,
           `${tariffLabel}. Доставка в ПВЗ (${data.pickupPoint.id})`,
           data.comment,
