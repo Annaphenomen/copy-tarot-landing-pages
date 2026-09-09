@@ -139,10 +139,11 @@ export function PaymentDialog({
       .trim();
 
   const queryTokens = normalize(pointQuery).split(" ").filter(Boolean);
+  // Поиск по первым буквам слов: «бес 3» найдёт «улица Бессонова, 3».
   const visiblePoints = points.filter((point) => {
     if (queryTokens.length === 0) return true;
-    const haystack = normalize(`${point.name} ${point.address}`);
-    return queryTokens.every((token) => haystack.includes(token));
+    const words = normalize(`${point.name} ${point.address}`).split(" ").filter(Boolean);
+    return queryTokens.every((token) => words.some((word) => word.startsWith(token)));
   });
 
   const startDeliveryCalculation = async (point: PickupPoint) => {
