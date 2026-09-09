@@ -452,9 +452,10 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const items = defaultItems();
+    const parcel = parcelFor(data.quantity);
+    const items = defaultItems(data.quantity);
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
-    const best = await cheapestDropoff(data.pickupPoint);
+    const best = await cheapestDropoff(data.pickupPoint, data.quantity);
     const dropoff = best.point;
     const tariffLabel = "Базовый тариф";
     const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-3)}`;
