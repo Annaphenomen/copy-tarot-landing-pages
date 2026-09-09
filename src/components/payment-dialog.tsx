@@ -291,41 +291,12 @@ export function PaymentDialog({
             </DialogHeader>
 
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                {(
-                  [
-                    { id: "standard", title: "Базовая", hint: "Входит в цену" },
-                    {
-                      id: "express",
-                      title: "Экспресс",
-                      hint:
-                        selectedPoint && expressPrice === null
-                          ? "Недоступно для этого ПВЗ"
-                          : "Доплата сверху",
-                    },
-                  ] as { id: Tariff; title: string; hint: string }[]
-                ).map((option) => {
-                  const disabled =
-                    option.id === "express" && selectedPoint !== null && expressPrice === null;
-                  return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => setTariff(option.id)}
-                    className={`rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                      tariff === option.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border/40 hover:border-primary/50"
-                    }`}
-                  >
-                    <span className="block text-sm font-medium text-foreground">{option.title}</span>
-                    <span className="block text-xs text-muted-foreground">{option.hint}</span>
-                  </button>
-                  );
-                })}
+              <div className="rounded-xl border border-border/40 bg-secondary/30 p-3">
+                <span className="block text-sm font-medium text-foreground">Базовая доставка</span>
+                <span className="block text-xs text-muted-foreground">
+                  Входит в стоимость заказа
+                </span>
               </div>
-
 
               <select
                 value={cityGeoId}
@@ -334,7 +305,6 @@ export function PaymentDialog({
                   setPoints([]);
                   setPointQuery("");
                   setSelectedPoint(null);
-                  setExpressPrice(null);
                   setBasePrice(null);
                 }}
                 aria-label="Город"
