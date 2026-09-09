@@ -851,6 +851,7 @@ function LandingPage() {
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
         total={total}
+        quantity={quantity}
         onPaid={() => setQuantity(0)}
       />
     </div>

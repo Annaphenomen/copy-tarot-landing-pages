@@ -109,9 +109,12 @@ const searchInputSchema = z.object({
   query: z.string().optional(),
 });
 
+const quantitySchema = z.number().int().min(1).max(50).default(1);
+
 const priceInputSchema = z.object({
   pickupPoint: pickupPointSchema,
   tariff: tariffSchema,
+  quantity: quantitySchema,
 });
 
 const orderInputSchema = z.object({
@@ -120,10 +123,12 @@ const orderInputSchema = z.object({
   customerEmail: z.string().email("Укажите корректный e-mail").optional().or(z.literal("")),
   pickupPoint: pickupPointSchema,
   tariff: tariffSchema,
+  quantity: quantitySchema,
   comment: z.string().optional(),
   orderNumber: z.string().optional(),
   orderSeq: z.number().optional(),
 });
+
 
 const statusInputSchema = z.object({
   claimId: z.string().min(1),
@@ -142,7 +147,7 @@ function getAuthHeaders() {
   };
 }
 
-// Реальные параметры посылки с колодой: 140×90×50 мм, 317 г.
+// Реальные параметры посылки с одной колодой: 140×90×50 мм, 317 г.
 const PARCEL = {
   lengthCm: 14,
   widthCm: 9,
@@ -150,10 +155,29 @@ const PARCEL = {
   weightGrams: 317,
 };
 
-function defaultItems() {
+const DECK_PRICE = 3333;
+
+// Габариты и вес зависят от количества колод: складываем их стопкой в одну коробку.
+function parcelFor(quantity: number) {
+  const qty = Math.max(1, Math.round(quantity || 1));
+  // Раскладываем стопками так, чтобы коробка оставалась компактной.
+  const perRow = qty > 4 ? 2 : 1;
+  const rows = Math.ceil(qty / perRow);
+  return {
+    quantity: qty,
+    lengthCm: PARCEL.lengthCm,
+    widthCm: PARCEL.widthCm * perRow,
+    heightCm: PARCEL.heightCm * rows,
+    weightGrams: PARCEL.weightGrams * qty,
+    assessedPrice: DECK_PRICE * qty,
+  };
+}
+
+function defaultItems(quantity = 1) {
+  const parcel = parcelFor(quantity);
   return [
     {
-      quantity: 1,
+      quantity: parcel.quantity,
       size: {
         length: PARCEL.lengthCm / 100,
         width: PARCEL.widthCm / 100,
@@ -165,24 +189,29 @@ function defaultItems() {
 }
 
 // Считаем базовую доставку из конкретной нашей точки сдачи в выбранный ПВЗ.
-async function priceFromDropoff(dropoff: (typeof DROPOFF_POINTS)[number], stationId: string) {
+async function priceFromDropoff(
+  dropoff: (typeof DROPOFF_POINTS)[number],
+  stationId: string,
+  quantity = 1
+) {
+  const parcel = parcelFor(quantity);
   const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/pricing-calculator`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
-      client_price: 3333,
-      total_assessed_price: 3333,
-      total_weight: PARCEL.weightGrams,
+      client_price: parcel.assessedPrice,
+      total_assessed_price: parcel.assessedPrice,
+      total_weight: parcel.weightGrams,
       tariff: "self_pickup",
       source: { platform_station_id: dropoff.stationId },
       destination: { platform_station_id: stationId },
       places: [
         {
           physical_dims: {
-            dx: PARCEL.lengthCm,
-            dy: PARCEL.widthCm,
-            dz: PARCEL.heightCm,
-            weight_gross: PARCEL.weightGrams,
+            dx: parcel.lengthCm,
+            dy: parcel.widthCm,
+            dz: parcel.heightCm,
+            weight_gross: parcel.weightGrams,
           },
         },
       ],
@@ -203,14 +232,17 @@ async function priceFromDropoff(dropoff: (typeof DROPOFF_POINTS)[number], statio
 }
 
 // Перебираем все наши точки сдачи и выбираем самую дешёвую доставку до ПВЗ.
-export async function cheapestDropoff(target: {
-  id: string;
-  latitude: number;
-  longitude: number;
-}) {
+export async function cheapestDropoff(
+  target: {
+    id: string;
+    latitude: number;
+    longitude: number;
+  },
+  quantity = 1
+) {
   const quotes = await Promise.all(
     DROPOFF_POINTS.map(async (point) => {
-      const quote = await priceFromDropoff(point, target.id);
+      const quote = await priceFromDropoff(point, target.id, quantity);
       return quote ? { point, ...quote } : null;
     })
   );
@@ -227,6 +259,7 @@ export async function cheapestDropoff(target: {
 
   return usable.sort((a, b) => a.price - b.price)[0]!;
 }
+
 
 type RawPickupPoint = {
   id: string;
@@ -330,7 +363,7 @@ export const calculateDeliveryPrice = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     // Базовый тариф считаем через «Платформу»: посылку мы сдаём сами, курьер не нужен.
     if (data.tariff === "standard") {
-      const best = await cheapestDropoff(data.pickupPoint);
+      const best = await cheapestDropoff(data.pickupPoint, data.quantity);
 
       if (best.price === null) {
         throw new Error("Не удалось рассчитать доставку в этот пункт выдачи.");
@@ -419,9 +452,10 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const items = defaultItems();
+    const parcel = parcelFor(data.quantity);
+    const items = defaultItems(data.quantity);
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
-    const best = await cheapestDropoff(data.pickupPoint);
+    const best = await cheapestDropoff(data.pickupPoint, data.quantity);
     const dropoff = best.point;
     const tariffLabel = "Базовый тариф";
     const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-3)}`;
@@ -458,10 +492,10 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const nameParts = data.customerName.trim().split(/\s+/);
     const barcode = orderNumber;
     const physicalDims = {
-      dx: PARCEL.lengthCm,
-      dy: PARCEL.widthCm,
-      dz: PARCEL.heightCm,
-      weight_gross: PARCEL.weightGrams,
+      dx: parcel.lengthCm,
+      dy: parcel.widthCm,
+      dz: parcel.heightCm,
+      weight_gross: parcel.weightGrams,
     };
 
     // Заявка «Платформы»: посылку сдаём сами в пункт приёма, получатель забирает в ПВЗ.
@@ -477,10 +511,13 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       },
       items: [
         {
-          count: 1,
+          count: parcel.quantity,
           name: "Колода карт Таро",
           article: "TAROROFLAN-1",
-          billing_details: { unit_price: 333300, assessed_unit_price: 333300 },
+          billing_details: {
+            unit_price: DECK_PRICE * 100,
+            assessed_unit_price: DECK_PRICE * 100,
+          },
           physical_dims: {
             dx: PARCEL.lengthCm,
             dy: PARCEL.widthCm,
