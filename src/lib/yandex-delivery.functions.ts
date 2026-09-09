@@ -178,11 +178,11 @@ function defaultItems(quantity = 1) {
     {
       quantity: parcel.quantity,
       size: {
-        length: PARCEL.lengthCm / 100,
-        width: PARCEL.widthCm / 100,
-        height: PARCEL.heightCm / 100,
+        length: parcel.lengthCm / 100,
+        width: parcel.widthCm / 100,
+        height: parcel.heightCm / 100,
       },
-      weight: PARCEL.weightGrams / 1000,
+      weight: parcel.weightGrams / 1000,
     },
   ];
 }
