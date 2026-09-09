@@ -492,10 +492,10 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const nameParts = data.customerName.trim().split(/\s+/);
     const barcode = orderNumber;
     const physicalDims = {
-      dx: PARCEL.lengthCm,
-      dy: PARCEL.widthCm,
-      dz: PARCEL.heightCm,
-      weight_gross: PARCEL.weightGrams,
+      dx: parcel.lengthCm,
+      dy: parcel.widthCm,
+      dz: parcel.heightCm,
+      weight_gross: parcel.weightGrams,
     };
 
     // Заявка «Платформы»: посылку сдаём сами в пункт приёма, получатель забирает в ПВЗ.
@@ -511,10 +511,13 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       },
       items: [
         {
-          count: 1,
+          count: parcel.quantity,
           name: "Колода карт Таро",
           article: "TAROROFLAN-1",
-          billing_details: { unit_price: 333300, assessed_unit_price: 333300 },
+          billing_details: {
+            unit_price: DECK_PRICE * 100,
+            assessed_unit_price: DECK_PRICE * 100,
+          },
           physical_dims: {
             dx: PARCEL.lengthCm,
             dy: PARCEL.widthCm,
