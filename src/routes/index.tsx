@@ -719,10 +719,10 @@ function Footer() {
               Политика конфиденциальности
             </Link>
             <a
-              href="mailto:phenomen.ooo@yandex.ru"
+              href="mailto:taroroflan@ya.ru"
               className="text-muted-foreground transition-colors hover:text-primary"
             >
-              phenomen.ooo@yandex.ru
+              taroroflan@ya.ru
             </a>
           </nav>
         </div>
