@@ -80,6 +80,35 @@ export function PaymentDialog({
   const [selectedPoint, setSelectedPoint] = useState<PickupPoint | null>(null);
 
   const findPoints = useServerFn(searchPickupPoints);
+  const findCities = useServerFn(searchCities);
+
+  const lookupCity = async () => {
+    const query = cityQuery.trim();
+    if (query.length < 2) return;
+    setSearchingCity(true);
+    try {
+      const result = await findCities({ data: { query } });
+      setCityResults(result.cities);
+      if (result.cities.length === 0) {
+        toast.info("Такой населённый пункт не найден. Проверьте написание.");
+      }
+    } catch (err) {
+      toast.error("Не удалось найти населённый пункт. Попробуйте ещё раз.");
+      console.error(err);
+    } finally {
+      setSearchingCity(false);
+    }
+  };
+
+  const pickCity = (variant: { geoId: number; name: string }) => {
+    setCity(variant);
+    setCityResults([]);
+    setCityQuery("");
+    setPoints([]);
+    setPointQuery("");
+    setSelectedPoint(null);
+    setBasePrice(null);
+  };
   const calcDelivery = useServerFn(calculateDeliveryPrice);
   const createOrder = useServerFn(createDeliveryOrder);
 
