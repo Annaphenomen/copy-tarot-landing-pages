@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import QRCode from "qrcode";
 import { CheckCircle2, Loader2, MapPin, Package, QrCode, Search, Smartphone } from "lucide-react";
 
+import sberQr from "@/assets/sber-pay-qr.png.asset.json";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,11 +44,8 @@ function makeOrderId() {
   return `RS-${Date.now().toString().slice(-6)}`;
 }
 
-// Заглушка платёжной ссылки СБП: заменится на ответ API «Плати QR» от Сбера,
-// когда будут получены ключи мерчанта.
-function buildPaymentLink(orderId: string, amount: number) {
-  return `https://qr.nspk.ru/demo?order=${orderId}&sum=${amount * 100}&cur=RUB`;
-}
+// Статический QR «Плати QR» от Сбера (СБП). Сумма вводится покупателем вручную.
+const SBER_PAY_LINK = "https://qr.nspk.ru/AS2A007NG12ADJQV9RGR7RJ50PPHEO9M";
 
 export function PaymentDialog({
   open,
@@ -63,7 +60,6 @@ export function PaymentDialog({
 }) {
   const [step, setStep] = useState<Step>("contacts");
   const [orderId, setOrderId] = useState("");
-  const [qrDataUrl, setQrDataUrl] = useState("");
   const [checking, setChecking] = useState(false);
   const [consent, setConsent] = useState(false);
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
@@ -85,7 +81,6 @@ export function PaymentDialog({
 
     const timer = setTimeout(() => {
       setStep("contacts");
-      setQrDataUrl("");
       setChecking(false);
       setConsent(false);
       setContacts(null);
@@ -157,16 +152,8 @@ export function PaymentDialog({
   };
 
 
-  const startPayment = async () => {
-    const id = makeOrderId();
-    setOrderId(id);
-    const nextTotal = total;
-    const url = await QRCode.toDataURL(buildPaymentLink(id, nextTotal), {
-      width: 512,
-      margin: 1,
-      color: { dark: "#0d1026", light: "#ffffff" },
-    });
-    setQrDataUrl(url);
+  const startPayment = () => {
+    setOrderId(makeOrderId());
     setStep("qr");
   };
 
@@ -417,27 +404,52 @@ export function PaymentDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Оплата по QR</DialogTitle>
               <DialogDescription>
-                Заказ №{orderId} на {finalTotal} ₽. Отсканируйте код камерой телефона или приложением
-                СберБанк Онлайн.
+                Заказ №{orderId} на {finalTotal} ₽. Отсканируйте код камерой телефона или
+                приложением банка.
               </DialogDescription>
             </DialogHeader>
 
             <div className="flex flex-col items-center gap-4">
-              <div className="rounded-xl bg-white p-3">
-                {qrDataUrl ? (
-                  <img src={qrDataUrl} alt={`QR-код для оплаты заказа ${orderId}`} className="h-52 w-52" />
-                ) : (
-                  <div className="flex h-52 w-52 items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                )}
-              </div>
+              <a
+                href={SBER_PAY_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Открыть оплату по QR"
+                className="rounded-xl bg-white p-3"
+              >
+                <img
+                  src={sberQr.url}
+                  alt={`QR-код для оплаты заказа ${orderId}`}
+                  className="h-52 w-52"
+                />
+              </a>
+
+              <ol className="w-full space-y-2 rounded-xl border border-border/40 bg-secondary/30 p-4 text-xs leading-relaxed text-muted-foreground">
+                <li>
+                  <span className="font-medium text-foreground">1.</span> Наведите камеру телефона
+                  на QR-код или откройте его в приложении банка.
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">2.</span> Введите сумму{" "}
+                  <span className="font-medium text-foreground">{finalTotal} ₽</span> — код
+                  универсальный, сумма не подставляется автоматически.
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">3.</span> В комментарии к платежу
+                  укажите номер заказа{" "}
+                  <span className="font-medium text-foreground">№{orderId}</span>.
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">4.</span> Подтвердите оплату и
+                  нажмите «Я оплатил» — мы оформим доставку в выбранный ПВЗ.
+                </li>
+              </ol>
 
               <div className="flex w-full flex-col gap-2">
                 <Button asChild variant="outline" className="w-full sm:hidden">
-                  <a href={buildPaymentLink(orderId, finalTotal)}>
+                  <a href={SBER_PAY_LINK} target="_blank" rel="noopener noreferrer">
                     <Smartphone className="mr-2 h-4 w-4" />
-                    Открыть СберБанк Онлайн
+                    Открыть приложение банка
                   </a>
                 </Button>
                 <Button className="w-full" size="lg" disabled={checking} onClick={confirmPayment}>
@@ -455,8 +467,8 @@ export function PaymentDialog({
               <Separator />
               <p className="flex items-start gap-2 text-xs text-muted-foreground">
                 <QrCode className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                Сейчас это тестовый QR: реальные платежи заработают после подключения «Плати QR» от
-                Сбера и ключей мерчанта.
+                Оплата проходит через СБП на счёт ООО «ФЕНОМЕН». Мы проверим поступление по номеру
+                заказа и сумме.
               </p>
             </div>
           </>
