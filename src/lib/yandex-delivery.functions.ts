@@ -153,7 +153,6 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
       body: JSON.stringify({
         geo_id: data.geoId,
         payment_method: "already_paid",
-        type: "pickup_point",
       }),
     });
 
