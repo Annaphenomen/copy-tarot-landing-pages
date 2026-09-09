@@ -569,8 +569,9 @@ export function PaymentDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Спасибо за заказ!</DialogTitle>
               <DialogDescription>
-                Заказ №{orderId} принят. Мы отправим колоду в выбранный пункт выдачи и пришлём код
-                получения, как только посылка приедет.
+                Заказ №{orderId} принят. Мы отправим колоду в выбранный пункт выдачи. Когда посылка
+                приедет, Яндекс Доставка пришлёт SMS на указанный вами номер с адресом пункта и кодом
+                получения.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
