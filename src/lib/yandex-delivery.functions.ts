@@ -109,9 +109,12 @@ const searchInputSchema = z.object({
   query: z.string().optional(),
 });
 
+const quantitySchema = z.number().int().min(1).max(50).default(1);
+
 const priceInputSchema = z.object({
   pickupPoint: pickupPointSchema,
   tariff: tariffSchema,
+  quantity: quantitySchema,
 });
 
 const orderInputSchema = z.object({
@@ -120,10 +123,12 @@ const orderInputSchema = z.object({
   customerEmail: z.string().email("Укажите корректный e-mail").optional().or(z.literal("")),
   pickupPoint: pickupPointSchema,
   tariff: tariffSchema,
+  quantity: quantitySchema,
   comment: z.string().optional(),
   orderNumber: z.string().optional(),
   orderSeq: z.number().optional(),
 });
+
 
 const statusInputSchema = z.object({
   claimId: z.string().min(1),
