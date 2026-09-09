@@ -165,7 +165,7 @@ function defaultItems() {
 }
 
 // Считаем базовую доставку из конкретной нашей точки сдачи в выбранный ПВЗ.
-async function priceFromDropoff(dropoffAddress: string, stationId: string) {
+async function priceFromDropoff(dropoff: (typeof DROPOFF_POINTS)[number], stationId: string) {
   const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/pricing-calculator`, {
     method: "POST",
     headers: getAuthHeaders(),
@@ -174,7 +174,7 @@ async function priceFromDropoff(dropoffAddress: string, stationId: string) {
       total_assessed_price: 3333,
       total_weight: PARCEL.weightGrams,
       tariff: "self_pickup",
-      source: { address: dropoffAddress },
+      source: { platform_station_id: dropoff.stationId },
       destination: { platform_station_id: stationId },
       places: [
         {
