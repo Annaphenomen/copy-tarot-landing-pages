@@ -308,6 +308,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
     const dropoff = nearestDropoff(data.pickupPoint);
     const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
+    const orderNumber = `RS-${Date.now().toString().slice(-6)}`;
 
     const { data: order, error: insertError } = await supabaseAdmin
       .from("orders")
@@ -318,6 +319,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         address_from: dropoff.address,
         address_to: pickupAddress,
         comment: [
+          `Заказ ${orderNumber}`,
           `Самопривоз: сдаём посылку в ${dropoff.address}`,
           `${tariffLabel}. Доставка в ПВЗ (${data.pickupPoint.id})`,
           data.comment,
@@ -407,8 +409,49 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       console.error("Failed to update order with claim:", updateError);
     }
 
+    // Письма: клиенту — подтверждение, владельцу — карточка заказа таблицей.
+    try {
+      const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
+      const deliveryPrice = result.price ? `${Math.round(Number(result.price))} ₽` : "—";
+      const createdAt = new Date().toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
+
+      await sendTemplateEmail("order-notification", "", {
+        idempotencyKey: `order-notification-${order.id}`,
+        templateData: {
+          orderNumber,
+          orderId: order.id,
+          customerName: data.customerName,
+          customerPhone: data.customerPhone,
+          customerEmail: data.customerEmail || "—",
+          pickupPoint: pickupAddress,
+          dropoffPoint: dropoff.address,
+          total: "3333 ₽",
+          deliveryPrice,
+          comment: data.comment || "—",
+          claimId: result.claim_id || "—",
+          createdAt,
+        },
+        ...(data.customerEmail ? { replyTo: data.customerEmail } : {}),
+      });
+
+      if (data.customerEmail) {
+        await sendTemplateEmail("order-confirmation", data.customerEmail, {
+          idempotencyKey: `order-confirmation-${order.id}`,
+          templateData: {
+            customerName: data.customerName,
+            orderNumber,
+            total: "3333 ₽",
+            pickupPoint: pickupAddress,
+          },
+        });
+      }
+    } catch (emailError) {
+      console.error("Failed to send order emails:", emailError);
+    }
+
     return {
       orderId: order.id,
+      orderNumber,
       claimId: result.claim_id,
       status: result.status,
       price: result.price ? Number(result.price) : null,
