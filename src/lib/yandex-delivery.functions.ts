@@ -105,6 +105,7 @@ const orderInputSchema = z.object({
   pickupPoint: pickupPointSchema,
   tariff: tariffSchema,
   comment: z.string().optional(),
+  orderNumber: z.string().optional(),
 });
 
 const statusInputSchema = z.object({
@@ -308,7 +309,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
     const dropoff = nearestDropoff(data.pickupPoint);
     const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
-    const orderNumber = `RS-${Date.now().toString().slice(-6)}`;
+    const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-6)}`;
 
     const { data: order, error: insertError } = await supabaseAdmin
       .from("orders")
