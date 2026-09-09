@@ -321,7 +321,7 @@ export function PaymentDialog({
                 <Input
                   value={pointQuery}
                   onChange={(e) => setPointQuery(e.target.value)}
-                  placeholder="Фильтр: улица или район"
+                  placeholder="Начните вводить улицу, например «Бес»"
                   aria-label="Фильтр пунктов выдачи"
                 />
                 <Button
