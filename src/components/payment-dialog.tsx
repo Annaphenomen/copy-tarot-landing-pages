@@ -68,9 +68,7 @@ export function PaymentDialog({
   const [checking, setChecking] = useState(false);
   const [consent, setConsent] = useState(false);
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
-  const [basePrice, setBasePrice] = useState<number | null>(null);
-  const [expressPrice, setExpressPrice] = useState<number | null>(null);
-  const [tariff, setTariff] = useState<Tariff>("standard");
+  const [, setBasePrice] = useState<number | null>(null);
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
 
   const [cityGeoId, setCityGeoId] = useState<number>(PICKUP_CITIES[0]!.geoId);
