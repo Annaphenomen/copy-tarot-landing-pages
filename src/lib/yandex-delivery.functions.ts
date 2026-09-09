@@ -24,32 +24,44 @@ export const PICKUP_CITIES: { name: string; geoId: number }[] = [
 ];
 
 // Наши точки самопривоза: посылку сдаём туда сами, курьер за ней не приезжает.
+// stationId — идентификатор точки в системе Яндекс Доставки (пункт приёма посылок).
 export const DROPOFF_POINTS: {
   name: string;
   address: string;
+  stationId: string;
   latitude: number;
   longitude: number;
 }[] = [
-  { name: "Пермь", address: "Пермь, улица Революции, 52", latitude: 58.0002, longitude: 56.238 },
+  {
+    name: "Пермь",
+    address: "Пермь, улица Революции, 46",
+    stationId: "01997c7982d076f6a7ab45de5cb6022a",
+    latitude: 58.0002,
+    longitude: 56.238,
+  },
   {
     name: "Красноярск",
     address: "Красноярск, Ярыгинская набережная, 11",
+    stationId: "019a3ac6e95d75aab47ab275da490f16",
     latitude: 55.993,
     longitude: 92.8,
   },
   {
     name: "Москва",
     address: "Москва, улица Маршала Соколовского, 3",
+    stationId: "0ddc67f8-3846-419e-a37c-1f50b8e872e0",
     latitude: 55.777,
     longitude: 37.488,
   },
   {
     name: "Александров",
-    address: "Александров, улица Гагарина, 23 корп. 1",
+    address: "Александров, улица Гагарина, 23 к1",
+    stationId: "c1483c5a-685c-463b-8ca5-d362d63f044f",
     latitude: 56.397,
     longitude: 38.72,
   },
 ];
+
 
 // Тарифы: базовый — самый дешёвый, экспресс — быстрее и дороже.
 const TARIFF_CLASSES: Record<"standard" | "express", string[]> = {
@@ -153,7 +165,7 @@ function defaultItems() {
 }
 
 // Считаем базовую доставку из конкретной нашей точки сдачи в выбранный ПВЗ.
-async function priceFromDropoff(dropoffAddress: string, stationId: string) {
+async function priceFromDropoff(dropoff: (typeof DROPOFF_POINTS)[number], stationId: string) {
   const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/pricing-calculator`, {
     method: "POST",
     headers: getAuthHeaders(),
@@ -162,7 +174,7 @@ async function priceFromDropoff(dropoffAddress: string, stationId: string) {
       total_assessed_price: 3333,
       total_weight: PARCEL.weightGrams,
       tariff: "self_pickup",
-      source: { address: dropoffAddress },
+      source: { platform_station_id: dropoff.stationId },
       destination: { platform_station_id: stationId },
       places: [
         {
@@ -179,7 +191,7 @@ async function priceFromDropoff(dropoffAddress: string, stationId: string) {
 
   const text = await response.text();
   if (!response.ok) {
-    console.error("Yandex pricing-calculator error", dropoffAddress, response.status, text);
+    console.error("Yandex pricing-calculator error", dropoff.address, response.status, text);
     return null;
   }
 
@@ -198,7 +210,7 @@ export async function cheapestDropoff(target: {
 }) {
   const quotes = await Promise.all(
     DROPOFF_POINTS.map(async (point) => {
-      const quote = await priceFromDropoff(point.address, target.id);
+      const quote = await priceFromDropoff(point, target.id);
       return quote ? { point, ...quote } : null;
     })
   );
@@ -409,11 +421,9 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
 
     const items = defaultItems();
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
-    const dropoff =
-      data.tariff === "standard"
-        ? (await cheapestDropoff(data.pickupPoint)).point
-        : nearestDropoff(data.pickupPoint);
-    const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
+    const best = await cheapestDropoff(data.pickupPoint);
+    const dropoff = best.point;
+    const tariffLabel = "Базовый тариф";
     const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-3)}`;
 
     const { data: order, error: insertError } = await supabaseAdmin
@@ -435,6 +445,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         items,
         order_number: orderNumber,
         order_seq: data.orderSeq ?? null,
+        delivery_price: best.price ?? null,
         status: "pending",
       })
       .select("id")
@@ -444,78 +455,134 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       throw new Error(`Failed to create order: ${insertError?.message || "unknown"}`);
     }
 
-    const requestId = `${order.id}-${Date.now()}`;
-    const claimBody = {
-      emergency_contact_name: data.customerName,
-      emergency_contact_phone: data.customerPhone,
-      items: items.map((item) => ({
-        ...item,
-        title: "Колода карт Таро",
-        cost_value: "3333.00",
-        cost_currency: "RUB",
-        pickup_point: 1,
-        droppof_point: 2,
-      })),
-      client_requirements: { taxi_class: TARIFF_CLASSES[data.tariff][0] },
-      route_points: [
+    const nameParts = data.customerName.trim().split(/\s+/);
+    const barcode = orderNumber;
+    const physicalDims = {
+      dx: PARCEL.lengthCm,
+      dy: PARCEL.widthCm,
+      dz: PARCEL.heightCm,
+      weight_gross: PARCEL.weightGrams,
+    };
+
+    // Заявка «Платформы»: посылку сдаём сами в пункт приёма, получатель забирает в ПВЗ.
+    const offerBody = {
+      info: {
+        operator_request_id: `${orderNumber}-${order.id.slice(0, 8)}`,
+        comment: [`Заказ ${orderNumber}`, data.comment].filter(Boolean).join(". "),
+      },
+      source: { platform_station: { platform_id: dropoff.stationId } },
+      destination: {
+        type: "platform_station",
+        platform_station: { platform_id: data.pickupPoint.id },
+      },
+      items: [
         {
-          point_id: 1,
-          visit_order: 1,
-          address: {
-            fullname: dropoff.address,
-            coordinates: [dropoff.longitude, dropoff.latitude],
+          count: 1,
+          name: "Колода карт Таро",
+          article: "TAROROFLAN-1",
+          billing_details: { unit_price: 333300, assessed_unit_price: 333300 },
+          physical_dims: {
+            dx: PARCEL.lengthCm,
+            dy: PARCEL.widthCm,
+            dz: PARCEL.heightCm,
           },
-          contact: { name: data.customerName, phone: data.customerPhone },
-          type: "source",
-        },
-        {
-          point_id: 2,
-          visit_order: 2,
-          address: {
-            fullname: data.pickupPoint.address,
-            coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
-          },
-          contact: { name: data.customerName, phone: data.customerPhone },
-          type: "destination",
-          pickup_point_id: data.pickupPoint.id,
+          place_barcode: barcode,
         },
       ],
-      comment: [`Самопривоз в ${dropoff.address}`, data.comment].filter(Boolean).join(". "),
+      places: [{ physical_dims: physicalDims, barcode }],
+      billing_info: { payment_method: "already_paid", delivery_cost: 0 },
+      recipient_info: {
+        first_name: nameParts[0] || data.customerName,
+        last_name: nameParts.slice(1).join(" ") || "—",
+        phone: data.customerPhone,
+        ...(data.customerEmail ? { email: data.customerEmail } : {}),
+      },
+      last_mile_policy: "self_pickup",
+      particular_items_refuse: false,
     };
 
+    const offerResponse = await fetch(`${YANDEX_PLATFORM_BASE_URL}/offers/create`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(offerBody),
+    });
 
-    const response = await fetch(
-      `${YANDEX_DELIVERY_BASE_URL}/claims/create?request_id=${encodeURIComponent(requestId)}`,
-      {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(claimBody),
+    const offerText = await offerResponse.text();
+    const offerJson = (() => {
+      try {
+        return JSON.parse(offerText) as {
+          offers?: {
+            offer_id?: string;
+            offer_details?: { pricing_total?: string };
+          }[];
+          message?: string;
+        };
+      } catch {
+        return null;
       }
-    );
+    })();
 
-    const result = (await response.json()) as {
-      claim_id?: string;
-      status?: string;
-      price?: string;
-      code?: string;
-      message?: string;
-    };
+    // Из предложенных вариантов берём самый дешёвый (при равной цене — самый быстрый).
+    const offer = [...(offerJson?.offers ?? [])].sort((a, b) => {
+      const pa = Number.parseFloat(String(a.offer_details?.pricing_total ?? "").replace(",", "."));
+      const pb = Number.parseFloat(String(b.offer_details?.pricing_total ?? "").replace(",", "."));
+      return (Number.isFinite(pa) ? pa : Infinity) - (Number.isFinite(pb) ? pb : Infinity);
+    })[0];
 
-    if (!response.ok || result.code) {
+    if (!offerResponse.ok || !offer?.offer_id) {
+      console.error("Yandex offers/create error", offerResponse.status, offerText);
       await supabaseAdmin
         .from("orders")
-        .update({ status: "delivery_error", yandex_status: result.status || "error" })
+        .update({ status: "delivery_error", yandex_status: "offer_error" })
         .eq("id", order.id);
-
-      throw new Error(result.message || `Yandex Delivery claim error: ${response.status}`);
+      throw new Error(
+        offerJson?.message || `Яндекс Доставка не приняла заказ (${offerResponse.status}).`
+      );
     }
+
+    const confirmResponse = await fetch(`${YANDEX_PLATFORM_BASE_URL}/offers/confirm`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ offer_id: offer.offer_id }),
+    });
+
+    const confirmText = await confirmResponse.text();
+    const confirmJson = (() => {
+      try {
+        return JSON.parse(confirmText) as { request_id?: string; message?: string };
+      } catch {
+        return null;
+      }
+    })();
+
+    if (!confirmResponse.ok || !confirmJson?.request_id) {
+      console.error("Yandex offers/confirm error", confirmResponse.status, confirmText);
+      await supabaseAdmin
+        .from("orders")
+        .update({ status: "delivery_error", yandex_status: "confirm_error" })
+        .eq("id", order.id);
+      throw new Error(
+        confirmJson?.message || `Яндекс Доставка не подтвердила заказ (${confirmResponse.status}).`
+      );
+    }
+
+    const offerPrice = Number.parseFloat(
+      String(offer.offer_details?.pricing_total ?? "").replace(",", ".")
+    );
+    const finalPrice = Number.isFinite(offerPrice) ? offerPrice : best.price;
+
+    const result = {
+      claim_id: confirmJson.request_id,
+      status: "created",
+      price: finalPrice != null ? String(finalPrice) : undefined,
+    } as { claim_id?: string; status?: string; price?: string };
 
     const { error: updateError } = await supabaseAdmin
       .from("orders")
       .update({
         yandex_claim_id: result.claim_id ?? null,
         yandex_status: result.status ?? null,
-        delivery_price: result.price ? Number(result.price) : null,
+        delivery_price: finalPrice ?? null,
         status: "created",
       })
       .eq("id", order.id);
@@ -523,6 +590,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     if (updateError) {
       console.error("Failed to update order with claim:", updateError);
     }
+
 
     // Письма: клиенту — подтверждение, владельцу — карточка заказа таблицей.
     try {
