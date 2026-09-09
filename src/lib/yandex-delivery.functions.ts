@@ -177,7 +177,7 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
       .filter((p) => p.position && p.address?.full_address)
       .map((p) => ({
         id: p.id,
-        name: p.name || "Пункт выдачи",
+        name: p.name || (p.type === "terminal" ? "Постамат" : "Пункт выдачи"),
         address: p.address!.full_address!,
         latitude: p.position!.latitude,
         longitude: p.position!.longitude,
