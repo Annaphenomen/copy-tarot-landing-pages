@@ -61,6 +61,7 @@ export function PaymentDialog({
 }) {
   const [step, setStep] = useState<Step>("contacts");
   const [orderId, setOrderId] = useState("");
+  const [orderSeq, setOrderSeq] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
   const [consent, setConsent] = useState(false);
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
