@@ -522,7 +522,12 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       }
     })();
 
-    const offer = offerJson?.offers?.[0];
+    // Из предложенных вариантов берём самый дешёвый (при равной цене — самый быстрый).
+    const offer = [...(offerJson?.offers ?? [])].sort((a, b) => {
+      const pa = Number.parseFloat(String(a.offer_details?.pricing_total ?? "").replace(",", "."));
+      const pb = Number.parseFloat(String(b.offer_details?.pricing_total ?? "").replace(",", "."));
+      return (Number.isFinite(pa) ? pa : Infinity) - (Number.isFinite(pb) ? pb : Infinity);
+    })[0];
 
     if (!offerResponse.ok || !offer?.offer_id) {
       console.error("Yandex offers/create error", offerResponse.status, offerText);
