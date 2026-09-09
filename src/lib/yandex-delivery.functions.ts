@@ -431,7 +431,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
           claimId: result.claim_id || "—",
           createdAt,
         },
-        replyTo: data.customerEmail || undefined,
+        ...(data.customerEmail ? { replyTo: data.customerEmail } : {}),
       });
 
       if (data.customerEmail) {
