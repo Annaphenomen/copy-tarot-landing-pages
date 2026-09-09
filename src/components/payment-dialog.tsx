@@ -20,6 +20,7 @@ import {
   PICKUP_CITIES,
   calculateDeliveryPrice,
   createDeliveryOrder,
+  reserveOrderNumber,
   searchCities,
   searchPickupPoints,
 } from "@/lib/yandex-delivery.functions";
@@ -83,6 +84,7 @@ export function PaymentDialog({
 
   const findPoints = useServerFn(searchPickupPoints);
   const findCities = useServerFn(searchCities);
+  const reserveNumber = useServerFn(reserveOrderNumber);
 
   const lookupCity = async () => {
     const query = cityQuery.trim();
@@ -216,6 +218,7 @@ export function PaymentDialog({
           pickupPoint: selectedPoint,
           tariff: "standard",
           orderNumber: orderId || undefined,
+          orderSeq: orderSeq ?? undefined,
         },
       });
       setChecking(false);
@@ -479,7 +482,7 @@ export function PaymentDialog({
               <Button variant="outline" className="flex-1" onClick={() => setStep("point")}>
                 Другой ПВЗ
               </Button>
-              <Button className="flex-1" size="lg" onClick={startPayment}>
+              <Button className="flex-1" size="lg" onClick={() => void startPayment()}>
                 Перейти к оплате
               </Button>
             </div>
