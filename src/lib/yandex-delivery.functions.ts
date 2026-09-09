@@ -157,28 +157,15 @@ const PARCEL = {
 
 const DECK_PRICE = 3333;
 
-// Габариты и вес зависят от количества колод: укладываем их в компактную коробку,
-// подбирая раскладку (по длине/ширине/высоте), а не одну высокую стопку.
+// Габариты и вес зависят от количества колод: укладываем друг на друга,
+// высота растёт, длина и ширина остаются как у одной колоды.
 function parcelFor(quantity: number) {
   const qty = Math.max(1, Math.round(quantity || 1));
-  let best = { l: PARCEL.lengthCm * qty, w: PARCEL.widthCm, h: PARCEL.heightCm, score: Infinity };
-  for (let nx = 1; nx <= qty; nx++) {
-    for (let ny = 1; ny <= qty; ny++) {
-      const nz = Math.ceil(qty / (nx * ny));
-      if (nx * ny * nz < qty) continue;
-      const l = PARCEL.lengthCm * nx;
-      const w = PARCEL.widthCm * ny;
-      const h = PARCEL.heightCm * nz;
-      // Минимизируем сумму сторон (компактнее коробка) и штрафуем вытянутость.
-      const score = l + w + h + Math.max(l, w, h);
-      if (score < best.score) best = { l, w, h, score };
-    }
-  }
   return {
     quantity: qty,
-    lengthCm: best.l,
-    widthCm: best.w,
-    heightCm: best.h,
+    lengthCm: PARCEL.lengthCm,
+    widthCm: PARCEL.widthCm,
+    heightCm: PARCEL.heightCm * qty,
     weightGrams: PARCEL.weightGrams * qty,
     assessedPrice: DECK_PRICE * qty,
   };
@@ -191,11 +178,11 @@ function defaultItems(quantity = 1) {
     {
       quantity: parcel.quantity,
       size: {
-        length: PARCEL.lengthCm / 100,
-        width: PARCEL.widthCm / 100,
-        height: PARCEL.heightCm / 100,
+        length: parcel.lengthCm / 100,
+        width: parcel.widthCm / 100,
+        height: parcel.heightCm / 100,
       },
-      weight: PARCEL.weightGrams / 1000,
+      weight: parcel.weightGrams / 1000,
     },
   ];
 }
