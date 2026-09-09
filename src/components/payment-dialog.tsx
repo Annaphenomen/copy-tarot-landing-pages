@@ -20,6 +20,7 @@ import {
   PICKUP_CITIES,
   calculateDeliveryPrice,
   createDeliveryOrder,
+  searchCities,
   searchPickupPoints,
 } from "@/lib/yandex-delivery.functions";
 
@@ -66,13 +67,49 @@ export function PaymentDialog({
   const [, setBasePrice] = useState<number | null>(null);
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
 
-  const [cityGeoId, setCityGeoId] = useState<number>(PICKUP_CITIES[0]!.geoId);
+  const [city, setCity] = useState<{ geoId: number; name: string }>({
+    geoId: PICKUP_CITIES[0]!.geoId,
+    name: PICKUP_CITIES[0]!.name,
+  });
+  const cityGeoId = city.geoId;
+  const [cityQuery, setCityQuery] = useState("");
+  const [cityResults, setCityResults] = useState<{ geoId: number; name: string }[]>([]);
+  const [searchingCity, setSearchingCity] = useState(false);
   const [pointQuery, setPointQuery] = useState("");
   const [points, setPoints] = useState<PickupPoint[]>([]);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<PickupPoint | null>(null);
 
   const findPoints = useServerFn(searchPickupPoints);
+  const findCities = useServerFn(searchCities);
+
+  const lookupCity = async () => {
+    const query = cityQuery.trim();
+    if (query.length < 2) return;
+    setSearchingCity(true);
+    try {
+      const result = await findCities({ data: { query } });
+      setCityResults(result.cities);
+      if (result.cities.length === 0) {
+        toast.info("Такой населённый пункт не найден. Проверьте написание.");
+      }
+    } catch (err) {
+      toast.error("Не удалось найти населённый пункт. Попробуйте ещё раз.");
+      console.error(err);
+    } finally {
+      setSearchingCity(false);
+    }
+  };
+
+  const pickCity = (variant: { geoId: number; name: string }) => {
+    setCity(variant);
+    setCityResults([]);
+    setCityQuery("");
+    setPoints([]);
+    setPointQuery("");
+    setSelectedPoint(null);
+    setBasePrice(null);
+  };
   const calcDelivery = useServerFn(calculateDeliveryPrice);
   const createOrder = useServerFn(createDeliveryOrder);
 
@@ -267,30 +304,64 @@ export function PaymentDialog({
 
             <div className="space-y-3">
               <div className="rounded-xl border border-border/40 bg-secondary/30 p-3">
-                <span className="block text-sm font-medium text-foreground">Базовая доставка</span>
+                <span className="block text-sm font-medium text-foreground">
+                  Доставка включена в стоимость
+                </span>
                 <span className="block text-xs text-muted-foreground">
-                  Входит в стоимость заказа
+                  Цена заказа одна для любого пункта выдачи
                 </span>
               </div>
 
-              <select
-                value={cityGeoId}
-                onChange={(e) => {
-                  setCityGeoId(Number(e.target.value));
-                  setPoints([]);
-                  setPointQuery("");
-                  setSelectedPoint(null);
-                  setBasePrice(null);
-                }}
-                aria-label="Город"
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-              >
-                {PICKUP_CITIES.map((city) => (
-                  <option key={city.geoId} value={city.geoId}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
+
+
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={cityQuery}
+                    onChange={(e) => setCityQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void lookupCity();
+                      }
+                    }}
+                    placeholder="Город, посёлок или село — например «Сысерть»"
+                    aria-label="Населённый пункт"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void lookupCity()}
+                    disabled={searchingCity || cityQuery.trim().length < 2}
+                    aria-label="Найти населённый пункт"
+                  >
+                    {searchingCity ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {cityResults.length > 0 && (
+                  <div className="max-h-40 space-y-1 overflow-y-auto rounded-xl border border-border/40 p-1">
+                    {cityResults.map((variant) => (
+                      <button
+                        key={variant.geoId}
+                        type="button"
+                        onClick={() => pickCity(variant)}
+                        className="w-full rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-secondary/60"
+                      >
+                        {variant.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  Выбран пункт доставки: <span className="text-foreground">{city.name}</span>
+                </p>
+              </div>
 
               <div className="flex gap-2">
                 <Input
@@ -351,7 +422,7 @@ export function PaymentDialog({
               {calculatingDelivery && (
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Рассчитываем доставку…
+                  Проверяем пункт выдачи…
                 </p>
               )}
 

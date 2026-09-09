@@ -88,6 +88,10 @@ const pickupPointSchema = z.object({
 
 const tariffSchema = z.enum(["standard", "express"]).default("standard");
 
+const citySearchSchema = z.object({
+  query: z.string().min(2),
+});
+
 const searchInputSchema = z.object({
   geoId: z.number(),
   query: z.string().optional(),
@@ -143,6 +147,31 @@ type RawPickupPoint = {
   address?: { full_address?: string; locality?: string; street?: string; house?: string };
   schedule?: unknown;
 };
+
+// Поиск любого населённого пункта России по названию (город, посёлок, село).
+export const searchCities = createServerFn({ method: "POST" })
+  .validator((data) => citySearchSchema.parse(data))
+  .handler(async ({ data }) => {
+    const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/location/detect`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ location: data.query }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Yandex location detect error", response.status, text);
+      throw new Error("Не удалось найти населённый пункт. Попробуйте ещё раз.");
+    }
+
+    const result = (await response.json()) as {
+      variants?: { geo_id: number; address: string }[];
+    };
+
+    return {
+      cities: (result.variants ?? []).map((v) => ({ geoId: v.geo_id, name: v.address })),
+    };
+  });
 
 export const searchPickupPoints = createServerFn({ method: "POST" })
   .validator((data) => searchInputSchema.parse(data))
