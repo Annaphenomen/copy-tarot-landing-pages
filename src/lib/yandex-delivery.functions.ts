@@ -316,41 +316,25 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
 export const calculateDeliveryPrice = createServerFn({ method: "POST" })
   .validator((data) => priceInputSchema.parse(data))
   .handler(async ({ data }) => {
-    const dropoff = nearestDropoff(data.pickupPoint);
-
     // Базовый тариф считаем через «Платформу»: посылку мы сдаём сами, курьер не нужен.
     if (data.tariff === "standard") {
-      const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/pricing-calculator`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          client_price: 3333,
-          total_assessed_price: 3333,
-          total_weight: 500,
-          tariff: "self_pickup",
-          source: { address: dropoff.address },
-          destination: { platform_station_id: data.pickupPoint.id },
-        }),
-      });
+      const best = await cheapestDropoff(data.pickupPoint);
 
-      const text = await response.text();
-      if (!response.ok) {
-        console.error("Yandex pricing-calculator error", response.status, text);
+      if (best.price === null) {
         throw new Error("Не удалось рассчитать доставку в этот пункт выдачи.");
       }
 
-      const result = JSON.parse(text) as { pricing_total?: string; delivery_days?: number };
-      const price = Number.parseFloat(String(result.pricing_total ?? "").replace(",", "."));
-
       return {
-        price: Number.isFinite(price) ? Math.round(price) : null,
+        price: Math.round(best.price),
         currency: "RUB",
         offer: null,
-        dropoff: dropoff.address,
+        dropoff: best.point.address,
         tariff: data.tariff,
-        deliveryDays: result.delivery_days ?? null,
+        deliveryDays: best.deliveryDays,
       };
     }
+
+    const dropoff = nearestDropoff(data.pickupPoint);
 
     // Экспресс доступен не везде — считаем через cargo API.
     let lastText = "";
