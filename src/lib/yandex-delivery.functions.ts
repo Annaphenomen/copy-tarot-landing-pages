@@ -421,11 +421,9 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
 
     const items = defaultItems();
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
-    const dropoff =
-      data.tariff === "standard"
-        ? (await cheapestDropoff(data.pickupPoint)).point
-        : nearestDropoff(data.pickupPoint);
-    const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
+    const best = await cheapestDropoff(data.pickupPoint);
+    const dropoff = best.point;
+    const tariffLabel = "Базовый тариф";
     const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-3)}`;
 
     const { data: order, error: insertError } = await supabaseAdmin
@@ -447,6 +445,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         items,
         order_number: orderNumber,
         order_seq: data.orderSeq ?? null,
+        delivery_price: best.price ?? null,
         status: "pending",
       })
       .select("id")
@@ -456,78 +455,129 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
       throw new Error(`Failed to create order: ${insertError?.message || "unknown"}`);
     }
 
-    const requestId = `${order.id}-${Date.now()}`;
-    const claimBody = {
-      emergency_contact_name: data.customerName,
-      emergency_contact_phone: data.customerPhone,
-      items: items.map((item) => ({
-        ...item,
-        title: "Колода карт Таро",
-        cost_value: "3333.00",
-        cost_currency: "RUB",
-        pickup_point: 1,
-        droppof_point: 2,
-      })),
-      client_requirements: { taxi_class: TARIFF_CLASSES[data.tariff][0] },
-      route_points: [
+    const nameParts = data.customerName.trim().split(/\s+/);
+    const barcode = orderNumber;
+    const physicalDims = {
+      dx: PARCEL.lengthCm,
+      dy: PARCEL.widthCm,
+      dz: PARCEL.heightCm,
+      weight_gross: PARCEL.weightGrams,
+    };
+
+    // Заявка «Платформы»: посылку сдаём сами в пункт приёма, получатель забирает в ПВЗ.
+    const offerBody = {
+      info: {
+        operator_request_id: `${orderNumber}-${order.id.slice(0, 8)}`,
+        comment: [`Заказ ${orderNumber}`, data.comment].filter(Boolean).join(". "),
+      },
+      source: { platform_station: { platform_id: dropoff.stationId } },
+      destination: {
+        type: "platform_station",
+        platform_station: { platform_id: data.pickupPoint.id },
+      },
+      items: [
         {
-          point_id: 1,
-          visit_order: 1,
-          address: {
-            fullname: dropoff.address,
-            coordinates: [dropoff.longitude, dropoff.latitude],
+          count: 1,
+          name: "Колода карт Таро",
+          article: "TAROROFLAN-1",
+          billing_details: { unit_price: 333300, assessed_unit_price: 333300 },
+          physical_dims: {
+            dx: PARCEL.lengthCm,
+            dy: PARCEL.widthCm,
+            dz: PARCEL.heightCm,
           },
-          contact: { name: data.customerName, phone: data.customerPhone },
-          type: "source",
-        },
-        {
-          point_id: 2,
-          visit_order: 2,
-          address: {
-            fullname: data.pickupPoint.address,
-            coordinates: [data.pickupPoint.longitude, data.pickupPoint.latitude],
-          },
-          contact: { name: data.customerName, phone: data.customerPhone },
-          type: "destination",
-          pickup_point_id: data.pickupPoint.id,
+          place_barcode: barcode,
         },
       ],
-      comment: [`Самопривоз в ${dropoff.address}`, data.comment].filter(Boolean).join(". "),
+      places: [{ physical_dims: physicalDims, barcode }],
+      billing_info: { payment_method: "already_paid", delivery_cost: 0 },
+      recipient_info: {
+        first_name: nameParts[0] || data.customerName,
+        last_name: nameParts.slice(1).join(" ") || "—",
+        phone: data.customerPhone,
+        ...(data.customerEmail ? { email: data.customerEmail } : {}),
+      },
+      last_mile_policy: "self_pickup",
+      particular_items_refuse: false,
     };
 
+    const offerResponse = await fetch(`${YANDEX_PLATFORM_BASE_URL}/offers/create`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(offerBody),
+    });
 
-    const response = await fetch(
-      `${YANDEX_DELIVERY_BASE_URL}/claims/create?request_id=${encodeURIComponent(requestId)}`,
-      {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(claimBody),
+    const offerText = await offerResponse.text();
+    const offerJson = (() => {
+      try {
+        return JSON.parse(offerText) as {
+          offers?: {
+            offer_id?: string;
+            offer_details?: { pricing_total?: string };
+          }[];
+          message?: string;
+        };
+      } catch {
+        return null;
       }
-    );
+    })();
 
-    const result = (await response.json()) as {
-      claim_id?: string;
-      status?: string;
-      price?: string;
-      code?: string;
-      message?: string;
-    };
+    const offer = offerJson?.offers?.[0];
 
-    if (!response.ok || result.code) {
+    if (!offerResponse.ok || !offer?.offer_id) {
+      console.error("Yandex offers/create error", offerResponse.status, offerText);
       await supabaseAdmin
         .from("orders")
-        .update({ status: "delivery_error", yandex_status: result.status || "error" })
+        .update({ status: "delivery_error", yandex_status: "offer_error" })
         .eq("id", order.id);
-
-      throw new Error(result.message || `Yandex Delivery claim error: ${response.status}`);
+      throw new Error(
+        offerJson?.message || `Яндекс Доставка не приняла заказ (${offerResponse.status}).`
+      );
     }
+
+    const confirmResponse = await fetch(`${YANDEX_PLATFORM_BASE_URL}/offers/confirm`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ offer_id: offer.offer_id }),
+    });
+
+    const confirmText = await confirmResponse.text();
+    const confirmJson = (() => {
+      try {
+        return JSON.parse(confirmText) as { request_id?: string; message?: string };
+      } catch {
+        return null;
+      }
+    })();
+
+    if (!confirmResponse.ok || !confirmJson?.request_id) {
+      console.error("Yandex offers/confirm error", confirmResponse.status, confirmText);
+      await supabaseAdmin
+        .from("orders")
+        .update({ status: "delivery_error", yandex_status: "confirm_error" })
+        .eq("id", order.id);
+      throw new Error(
+        confirmJson?.message || `Яндекс Доставка не подтвердила заказ (${confirmResponse.status}).`
+      );
+    }
+
+    const offerPrice = Number.parseFloat(
+      String(offer.offer_details?.pricing_total ?? "").replace(",", ".")
+    );
+    const finalPrice = Number.isFinite(offerPrice) ? offerPrice : best.price;
+
+    const result = {
+      claim_id: confirmJson.request_id,
+      status: "created",
+      price: finalPrice != null ? String(finalPrice) : undefined,
+    } as { claim_id?: string; status?: string; price?: string };
 
     const { error: updateError } = await supabaseAdmin
       .from("orders")
       .update({
         yandex_claim_id: result.claim_id ?? null,
         yandex_status: result.status ?? null,
-        delivery_price: result.price ? Number(result.price) : null,
+        delivery_price: finalPrice ?? null,
         status: "created",
       })
       .eq("id", order.id);
@@ -535,6 +585,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     if (updateError) {
       console.error("Failed to update order with claim:", updateError);
     }
+
 
     // Письма: клиенту — подтверждение, владельцу — карточка заказа таблицей.
     try {
