@@ -191,9 +191,16 @@ export function PaymentDialog({
   };
 
 
-  const startPayment = () => {
-    setOrderId(makeOrderId());
+  const startPayment = async () => {
     setStep("qr");
+    try {
+      const reserved = await reserveNumber({ data: undefined });
+      setOrderId(reserved.orderNumber);
+      setOrderSeq(reserved.orderSeq);
+    } catch (err) {
+      console.error(err);
+      setOrderId(makeOrderId());
+    }
   };
 
   const confirmPayment = async () => {
