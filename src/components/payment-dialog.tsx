@@ -66,7 +66,14 @@ export function PaymentDialog({
   const [, setBasePrice] = useState<number | null>(null);
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
 
-  const [cityGeoId, setCityGeoId] = useState<number>(PICKUP_CITIES[0]!.geoId);
+  const [city, setCity] = useState<{ geoId: number; name: string }>({
+    geoId: PICKUP_CITIES[0]!.geoId,
+    name: PICKUP_CITIES[0]!.name,
+  });
+  const cityGeoId = city.geoId;
+  const [cityQuery, setCityQuery] = useState("");
+  const [cityResults, setCityResults] = useState<{ geoId: number; name: string }[]>([]);
+  const [searchingCity, setSearchingCity] = useState(false);
   const [pointQuery, setPointQuery] = useState("");
   const [points, setPoints] = useState<PickupPoint[]>([]);
   const [loadingPoints, setLoadingPoints] = useState(false);
