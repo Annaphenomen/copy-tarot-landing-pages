@@ -25,7 +25,6 @@ import {
 
 type Step = "contacts" | "point" | "delivery" | "qr" | "done";
 
-type Tariff = "standard" | "express";
 
 export type PickupPoint = {
   id: string;
@@ -68,9 +67,7 @@ export function PaymentDialog({
   const [checking, setChecking] = useState(false);
   const [consent, setConsent] = useState(false);
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
-  const [basePrice, setBasePrice] = useState<number | null>(null);
-  const [expressPrice, setExpressPrice] = useState<number | null>(null);
-  const [tariff, setTariff] = useState<Tariff>("standard");
+  const [, setBasePrice] = useState<number | null>(null);
   const [calculatingDelivery, setCalculatingDelivery] = useState(false);
 
   const [cityGeoId, setCityGeoId] = useState<number>(PICKUP_CITIES[0]!.geoId);
@@ -93,7 +90,6 @@ export function PaymentDialog({
       setConsent(false);
       setContacts(null);
       setBasePrice(null);
-      setExpressPrice(null);
       setCalculatingDelivery(false);
       setPoints([]);
       setPointQuery("");
@@ -102,10 +98,7 @@ export function PaymentDialog({
     return () => clearTimeout(timer);
   }, [open]);
 
-  const expressSurcharge =
-    tariff === "express" && expressPrice !== null && basePrice !== null
-      ? Math.max(0, Math.round(expressPrice - basePrice))
-      : 0;
+
 
 
   const loadPoints = async (geoId: number) => {
@@ -139,10 +132,11 @@ export function PaymentDialog({
       .trim();
 
   const queryTokens = normalize(pointQuery).split(" ").filter(Boolean);
+  // Поиск по первым буквам слов: «бес 3» найдёт «улица Бессонова, 3».
   const visiblePoints = points.filter((point) => {
     if (queryTokens.length === 0) return true;
-    const haystack = normalize(`${point.name} ${point.address}`);
-    return queryTokens.every((token) => haystack.includes(token));
+    const words = normalize(`${point.name} ${point.address}`).split(" ").filter(Boolean);
+    return queryTokens.every((token) => words.some((word) => word.startsWith(token)));
   });
 
   const startDeliveryCalculation = async (point: PickupPoint) => {
@@ -151,15 +145,6 @@ export function PaymentDialog({
     try {
       const base = await calcDelivery({ data: { pickupPoint: point, tariff: "standard" } });
       setBasePrice(base.price);
-      let express: number | null = null;
-      try {
-        const fast = await calcDelivery({ data: { pickupPoint: point, tariff: "express" } });
-        express = fast.price;
-      } catch {
-        express = null;
-      }
-      setExpressPrice(express);
-      if (express === null && tariff === "express") setTariff("standard");
       setStep("delivery");
     } catch (err) {
       toast.error(
@@ -175,7 +160,7 @@ export function PaymentDialog({
   const startPayment = async () => {
     const id = makeOrderId();
     setOrderId(id);
-    const nextTotal = total + expressSurcharge;
+    const nextTotal = total;
     const url = await QRCode.toDataURL(buildPaymentLink(id, nextTotal), {
       width: 512,
       margin: 1,
@@ -195,7 +180,7 @@ export function PaymentDialog({
           customerPhone: contacts.contact,
           customerEmail: contacts.email || undefined,
           pickupPoint: selectedPoint,
-          tariff,
+          tariff: "standard",
         },
       });
       setChecking(false);
@@ -210,7 +195,7 @@ export function PaymentDialog({
     }
   };
 
-  const finalTotal = total + expressSurcharge;
+  const finalTotal = total;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -291,41 +276,12 @@ export function PaymentDialog({
             </DialogHeader>
 
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                {(
-                  [
-                    { id: "standard", title: "Базовая", hint: "Входит в цену" },
-                    {
-                      id: "express",
-                      title: "Экспресс",
-                      hint:
-                        selectedPoint && expressPrice === null
-                          ? "Недоступно для этого ПВЗ"
-                          : "Доплата сверху",
-                    },
-                  ] as { id: Tariff; title: string; hint: string }[]
-                ).map((option) => {
-                  const disabled =
-                    option.id === "express" && selectedPoint !== null && expressPrice === null;
-                  return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => setTariff(option.id)}
-                    className={`rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                      tariff === option.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border/40 hover:border-primary/50"
-                    }`}
-                  >
-                    <span className="block text-sm font-medium text-foreground">{option.title}</span>
-                    <span className="block text-xs text-muted-foreground">{option.hint}</span>
-                  </button>
-                  );
-                })}
+              <div className="rounded-xl border border-border/40 bg-secondary/30 p-3">
+                <span className="block text-sm font-medium text-foreground">Базовая доставка</span>
+                <span className="block text-xs text-muted-foreground">
+                  Входит в стоимость заказа
+                </span>
               </div>
-
 
               <select
                 value={cityGeoId}
@@ -334,7 +290,6 @@ export function PaymentDialog({
                   setPoints([]);
                   setPointQuery("");
                   setSelectedPoint(null);
-                  setExpressPrice(null);
                   setBasePrice(null);
                 }}
                 aria-label="Город"
@@ -351,7 +306,7 @@ export function PaymentDialog({
                 <Input
                   value={pointQuery}
                   onChange={(e) => setPointQuery(e.target.value)}
-                  placeholder="Фильтр: улица или район"
+                  placeholder="Начните вводить улицу, например «Бес»"
                   aria-label="Фильтр пунктов выдачи"
                 />
                 <Button
@@ -434,16 +389,8 @@ export function PaymentDialog({
                 <span className="font-medium text-foreground">{total} ₽</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  {tariff === "express" ? "Доплата за экспресс" : "Доставка в ПВЗ"}
-                </span>
-                <span className="font-medium text-foreground">
-                  {tariff === "express"
-                    ? expressSurcharge > 0
-                      ? `${expressSurcharge} ₽`
-                      : "0 ₽"
-                    : "включена"}
-                </span>
+                <span className="text-muted-foreground">Доставка в ПВЗ</span>
+                <span className="font-medium text-foreground">включена</span>
               </div>
 
               <div className="flex items-center justify-between text-base">
