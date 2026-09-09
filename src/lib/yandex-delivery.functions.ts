@@ -24,32 +24,44 @@ export const PICKUP_CITIES: { name: string; geoId: number }[] = [
 ];
 
 // Наши точки самопривоза: посылку сдаём туда сами, курьер за ней не приезжает.
+// stationId — идентификатор точки в системе Яндекс Доставки (пункт приёма посылок).
 export const DROPOFF_POINTS: {
   name: string;
   address: string;
+  stationId: string;
   latitude: number;
   longitude: number;
 }[] = [
-  { name: "Пермь", address: "Пермь, улица Революции, 52", latitude: 58.0002, longitude: 56.238 },
+  {
+    name: "Пермь",
+    address: "Пермь, улица Революции, 46",
+    stationId: "01997c7982d076f6a7ab45de5cb6022a",
+    latitude: 58.0002,
+    longitude: 56.238,
+  },
   {
     name: "Красноярск",
     address: "Красноярск, Ярыгинская набережная, 11",
+    stationId: "019a3ac6e95d75aab47ab275da490f16",
     latitude: 55.993,
     longitude: 92.8,
   },
   {
     name: "Москва",
     address: "Москва, улица Маршала Соколовского, 3",
+    stationId: "0ddc67f8-3846-419e-a37c-1f50b8e872e0",
     latitude: 55.777,
     longitude: 37.488,
   },
   {
     name: "Александров",
-    address: "Александров, улица Гагарина, 23 корп. 1",
+    address: "Александров, улица Гагарина, 23 к1",
+    stationId: "c1483c5a-685c-463b-8ca5-d362d63f044f",
     latitude: 56.397,
     longitude: 38.72,
   },
 ];
+
 
 // Тарифы: базовый — самый дешёвый, экспресс — быстрее и дороже.
 const TARIFF_CLASSES: Record<"standard" | "express", string[]> = {
