@@ -147,7 +147,7 @@ function getAuthHeaders() {
   };
 }
 
-// Реальные параметры посылки с колодой: 140×90×50 мм, 317 г.
+// Реальные параметры посылки с одной колодой: 140×90×50 мм, 317 г.
 const PARCEL = {
   lengthCm: 14,
   widthCm: 9,
@@ -155,10 +155,29 @@ const PARCEL = {
   weightGrams: 317,
 };
 
-function defaultItems() {
+const DECK_PRICE = 3333;
+
+// Габариты и вес зависят от количества колод: складываем их стопкой в одну коробку.
+function parcelFor(quantity: number) {
+  const qty = Math.max(1, Math.round(quantity || 1));
+  // Раскладываем стопками так, чтобы коробка оставалась компактной.
+  const perRow = qty > 4 ? 2 : 1;
+  const rows = Math.ceil(qty / perRow);
+  return {
+    quantity: qty,
+    lengthCm: PARCEL.lengthCm,
+    widthCm: PARCEL.widthCm * perRow,
+    heightCm: PARCEL.heightCm * rows,
+    weightGrams: PARCEL.weightGrams * qty,
+    assessedPrice: DECK_PRICE * qty,
+  };
+}
+
+function defaultItems(quantity = 1) {
+  const parcel = parcelFor(quantity);
   return [
     {
-      quantity: 1,
+      quantity: parcel.quantity,
       size: {
         length: PARCEL.lengthCm / 100,
         width: PARCEL.widthCm / 100,
@@ -170,24 +189,29 @@ function defaultItems() {
 }
 
 // Считаем базовую доставку из конкретной нашей точки сдачи в выбранный ПВЗ.
-async function priceFromDropoff(dropoff: (typeof DROPOFF_POINTS)[number], stationId: string) {
+async function priceFromDropoff(
+  dropoff: (typeof DROPOFF_POINTS)[number],
+  stationId: string,
+  quantity = 1
+) {
+  const parcel = parcelFor(quantity);
   const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/pricing-calculator`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
-      client_price: 3333,
-      total_assessed_price: 3333,
-      total_weight: PARCEL.weightGrams,
+      client_price: parcel.assessedPrice,
+      total_assessed_price: parcel.assessedPrice,
+      total_weight: parcel.weightGrams,
       tariff: "self_pickup",
       source: { platform_station_id: dropoff.stationId },
       destination: { platform_station_id: stationId },
       places: [
         {
           physical_dims: {
-            dx: PARCEL.lengthCm,
-            dy: PARCEL.widthCm,
-            dz: PARCEL.heightCm,
-            weight_gross: PARCEL.weightGrams,
+            dx: parcel.lengthCm,
+            dy: parcel.widthCm,
+            dz: parcel.heightCm,
+            weight_gross: parcel.weightGrams,
           },
         },
       ],
@@ -208,14 +232,17 @@ async function priceFromDropoff(dropoff: (typeof DROPOFF_POINTS)[number], statio
 }
 
 // Перебираем все наши точки сдачи и выбираем самую дешёвую доставку до ПВЗ.
-export async function cheapestDropoff(target: {
-  id: string;
-  latitude: number;
-  longitude: number;
-}) {
+export async function cheapestDropoff(
+  target: {
+    id: string;
+    latitude: number;
+    longitude: number;
+  },
+  quantity = 1
+) {
   const quotes = await Promise.all(
     DROPOFF_POINTS.map(async (point) => {
-      const quote = await priceFromDropoff(point, target.id);
+      const quote = await priceFromDropoff(point, target.id, quantity);
       return quote ? { point, ...quote } : null;
     })
   );
@@ -232,6 +259,7 @@ export async function cheapestDropoff(target: {
 
   return usable.sort((a, b) => a.price - b.price)[0]!;
 }
+
 
 type RawPickupPoint = {
   id: string;
