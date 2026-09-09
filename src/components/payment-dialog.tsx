@@ -304,11 +304,15 @@ export function PaymentDialog({
 
             <div className="space-y-3">
               <div className="rounded-xl border border-border/40 bg-secondary/30 p-3">
-                <span className="block text-sm font-medium text-foreground">Базовая доставка</span>
+                <span className="block text-sm font-medium text-foreground">
+                  Доставка включена в стоимость
+                </span>
                 <span className="block text-xs text-muted-foreground">
-                  Входит в стоимость заказа
+                  Цена заказа одна для любого пункта выдачи
                 </span>
               </div>
+
+
 
               <div className="space-y-2">
                 <div className="flex gap-2">
