@@ -25,7 +25,6 @@ import {
 
 type Step = "contacts" | "point" | "delivery" | "qr" | "done";
 
-type Tariff = "standard" | "express";
 
 export type PickupPoint = {
   id: string;
@@ -99,7 +98,6 @@ export function PaymentDialog({
     return () => clearTimeout(timer);
   }, [open]);
 
-  const expressSurcharge = 0;
 
 
 
@@ -162,7 +160,7 @@ export function PaymentDialog({
   const startPayment = async () => {
     const id = makeOrderId();
     setOrderId(id);
-    const nextTotal = total + expressSurcharge;
+    const nextTotal = total;
     const url = await QRCode.toDataURL(buildPaymentLink(id, nextTotal), {
       width: 512,
       margin: 1,
@@ -197,7 +195,7 @@ export function PaymentDialog({
     }
   };
 
-  const finalTotal = total + expressSurcharge;
+  const finalTotal = total;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
