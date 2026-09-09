@@ -319,7 +319,7 @@ export function PaymentDialog({
               </p>
 
               <div className="max-h-64 space-y-2 overflow-y-auto">
-                {visiblePoints.map((point) => (
+                {visiblePoints.slice(0, 100).map((point) => (
                   <button
                     key={point.id}
                     type="button"
@@ -334,6 +334,11 @@ export function PaymentDialog({
                     </span>
                   </button>
                 ))}
+                {visiblePoints.length > 100 && (
+                  <p className="py-2 text-center text-xs text-muted-foreground">
+                    Показаны первые 100 — уточните поиск по улице или дому.
+                  </p>
+                )}
                 {visiblePoints.length === 0 && !loadingPoints && (
                   <p className="py-6 text-center text-sm text-muted-foreground">
                     Ничего не найдено — очистите фильтр или выберите другой город.

@@ -153,7 +153,6 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
       body: JSON.stringify({
         geo_id: data.geoId,
         payment_method: "already_paid",
-        type: "pickup_point",
       }),
     });
 
@@ -178,7 +177,7 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
       .filter((p) => p.position && p.address?.full_address)
       .map((p) => ({
         id: p.id,
-        name: p.name || "Пункт выдачи",
+        name: p.name || (p.type === "terminal" ? "Постамат" : "Пункт выдачи"),
         address: p.address!.full_address!,
         latitude: p.position!.latitude,
         longitude: p.position!.longitude,
@@ -188,8 +187,7 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
         const haystack = normalize(`${p.name} ${p.address}`);
         return tokens.every((token) => haystack.includes(token));
       })
-      .sort((a, b) => a.address.localeCompare(b.address, "ru"))
-      .slice(0, 500);
+      .sort((a, b) => a.address.localeCompare(b.address, "ru"));
 
 
     return { points };
