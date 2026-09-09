@@ -448,7 +448,14 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const claimBody = {
       emergency_contact_name: data.customerName,
       emergency_contact_phone: data.customerPhone,
-      items,
+      items: items.map((item) => ({
+        ...item,
+        title: "Колода карт Таро",
+        cost_value: "3333.00",
+        cost_currency: "RUB",
+        pickup_point: 1,
+        droppof_point: 2,
+      })),
       client_requirements: { taxi_class: TARIFF_CLASSES[data.tariff][0] },
       route_points: [
         {
