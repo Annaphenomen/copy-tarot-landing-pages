@@ -409,7 +409,10 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
 
     const items = defaultItems();
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
-    const dropoff = nearestDropoff(data.pickupPoint);
+    const dropoff =
+      data.tariff === "standard"
+        ? (await cheapestDropoff(data.pickupPoint)).point
+        : nearestDropoff(data.pickupPoint);
     const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
     const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-3)}`;
 
