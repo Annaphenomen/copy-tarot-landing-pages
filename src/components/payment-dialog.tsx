@@ -168,6 +168,7 @@ export function PaymentDialog({
           customerEmail: contacts.email || undefined,
           pickupPoint: selectedPoint,
           tariff: "standard",
+          orderNumber: orderId || undefined,
         },
       });
       setChecking(false);

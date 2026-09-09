@@ -105,6 +105,7 @@ const orderInputSchema = z.object({
   pickupPoint: pickupPointSchema,
   tariff: tariffSchema,
   comment: z.string().optional(),
+  orderNumber: z.string().optional(),
 });
 
 const statusInputSchema = z.object({
