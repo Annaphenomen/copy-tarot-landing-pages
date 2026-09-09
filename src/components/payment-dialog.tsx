@@ -182,7 +182,7 @@ export function PaymentDialog({
           customerPhone: contacts.contact,
           customerEmail: contacts.email || undefined,
           pickupPoint: selectedPoint,
-          tariff,
+          tariff: "standard",
         },
       });
       setChecking(false);
