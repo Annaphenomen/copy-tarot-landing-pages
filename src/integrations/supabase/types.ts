@@ -27,6 +27,8 @@ export type Database = {
           delivery_price: number | null
           id: string
           items: Json
+          order_number: string | null
+          order_seq: number | null
           status: string
           updated_at: string
           yandex_claim_id: string | null
@@ -44,6 +46,8 @@ export type Database = {
           delivery_price?: number | null
           id?: string
           items?: Json
+          order_number?: string | null
+          order_seq?: number | null
           status?: string
           updated_at?: string
           yandex_claim_id?: string | null
@@ -61,6 +65,8 @@ export type Database = {
           delivery_price?: number | null
           id?: string
           items?: Json
+          order_number?: string | null
+          order_seq?: number | null
           status?: string
           updated_at?: string
           yandex_claim_id?: string | null
@@ -73,7 +79,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      next_order_code: {
+        Args: never
+        Returns: {
+          code: string
+          seq: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

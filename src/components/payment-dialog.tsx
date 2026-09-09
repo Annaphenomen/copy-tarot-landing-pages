@@ -20,6 +20,7 @@ import {
   PICKUP_CITIES,
   calculateDeliveryPrice,
   createDeliveryOrder,
+  reserveOrderNumber,
   searchCities,
   searchPickupPoints,
 } from "@/lib/yandex-delivery.functions";
@@ -61,6 +62,7 @@ export function PaymentDialog({
 }) {
   const [step, setStep] = useState<Step>("contacts");
   const [orderId, setOrderId] = useState("");
+  const [orderSeq, setOrderSeq] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
   const [consent, setConsent] = useState(false);
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
@@ -82,6 +84,7 @@ export function PaymentDialog({
 
   const findPoints = useServerFn(searchPickupPoints);
   const findCities = useServerFn(searchCities);
+  const reserveNumber = useServerFn(reserveOrderNumber);
 
   const lookupCity = async () => {
     const query = cityQuery.trim();
@@ -191,9 +194,16 @@ export function PaymentDialog({
   };
 
 
-  const startPayment = () => {
-    setOrderId(makeOrderId());
+  const startPayment = async () => {
     setStep("qr");
+    try {
+      const reserved = await reserveNumber({ data: undefined });
+      setOrderId(reserved.orderNumber);
+      setOrderSeq(reserved.orderSeq);
+    } catch (err) {
+      console.error(err);
+      setOrderId(makeOrderId());
+    }
   };
 
   const confirmPayment = async () => {
@@ -208,6 +218,7 @@ export function PaymentDialog({
           pickupPoint: selectedPoint,
           tariff: "standard",
           orderNumber: orderId || undefined,
+          orderSeq: orderSeq ?? undefined,
         },
       });
       setChecking(false);
@@ -471,7 +482,7 @@ export function PaymentDialog({
               <Button variant="outline" className="flex-1" onClick={() => setStep("point")}>
                 Другой ПВЗ
               </Button>
-              <Button className="flex-1" size="lg" onClick={startPayment}>
+              <Button className="flex-1" size="lg" onClick={() => void startPayment()}>
                 Перейти к оплате
               </Button>
             </div>

@@ -110,6 +110,7 @@ const orderInputSchema = z.object({
   tariff: tariffSchema,
   comment: z.string().optional(),
   orderNumber: z.string().optional(),
+  orderSeq: z.number().optional(),
 });
 
 const statusInputSchema = z.object({
@@ -147,6 +148,20 @@ type RawPickupPoint = {
   address?: { full_address?: string; locality?: string; street?: string; house?: string };
   schedule?: unknown;
 };
+
+// Номер заказа: сквозной счётчик в базе, покупателю показываем перемешанный код.
+export const reserveOrderNumber = createServerFn({ method: "POST" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await (supabaseAdmin as any).rpc("next_order_code");
+
+  if (error || !data?.[0]) {
+    console.error("next_order_code error", error);
+    // Запасной вариант, чтобы оформление не сорвалось.
+    return { orderNumber: `RS-${Date.now().toString().slice(-3)}`, orderSeq: null as number | null };
+  }
+
+  return { orderNumber: data[0].code as string, orderSeq: data[0].seq as number };
+});
 
 // Поиск любого населённого пункта России по названию (город, посёлок, село).
 export const searchCities = createServerFn({ method: "POST" })
@@ -336,7 +351,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
     const dropoff = nearestDropoff(data.pickupPoint);
     const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
-    const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-6)}`;
+    const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-3)}`;
 
     const { data: order, error: insertError } = await supabaseAdmin
       .from("orders")
@@ -355,6 +370,8 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
           .filter(Boolean)
           .join(". "),
         items,
+        order_number: orderNumber,
+        order_seq: data.orderSeq ?? null,
         status: "pending",
       })
       .select("id")
@@ -447,6 +464,7 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
         idempotencyKey: `order-notification-${order.id}`,
         templateData: {
           orderNumber,
+          orderSeq: data.orderSeq ? String(data.orderSeq) : "—",
           orderId: order.id,
           customerName: data.customerName,
           customerPhone: data.customerPhone,
