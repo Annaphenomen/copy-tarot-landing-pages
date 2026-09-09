@@ -130,14 +130,90 @@ function getAuthHeaders() {
   };
 }
 
+// Реальные параметры посылки с колодой: 140×90×50 мм, 317 г.
+const PARCEL = {
+  lengthCm: 14,
+  widthCm: 9,
+  heightCm: 5,
+  weightGrams: 317,
+};
+
 function defaultItems() {
   return [
     {
       quantity: 1,
-      size: { length: 0.2, width: 0.15, height: 0.05 },
-      weight: 0.5,
+      size: {
+        length: PARCEL.lengthCm / 100,
+        width: PARCEL.widthCm / 100,
+        height: PARCEL.heightCm / 100,
+      },
+      weight: PARCEL.weightGrams / 1000,
     },
   ];
+}
+
+// Считаем базовую доставку из конкретной нашей точки сдачи в выбранный ПВЗ.
+async function priceFromDropoff(dropoffAddress: string, stationId: string) {
+  const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/pricing-calculator`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      client_price: 3333,
+      total_assessed_price: 3333,
+      total_weight: PARCEL.weightGrams,
+      tariff: "self_pickup",
+      source: { address: dropoffAddress },
+      destination: { platform_station_id: stationId },
+      places: [
+        {
+          physical_dims: {
+            dx: PARCEL.lengthCm,
+            dy: PARCEL.widthCm,
+            dz: PARCEL.heightCm,
+            weight_gross: PARCEL.weightGrams,
+          },
+        },
+      ],
+    }),
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    console.error("Yandex pricing-calculator error", dropoffAddress, response.status, text);
+    return null;
+  }
+
+  const result = JSON.parse(text) as { pricing_total?: string; delivery_days?: number };
+  const price = Number.parseFloat(String(result.pricing_total ?? "").replace(",", "."));
+  if (!Number.isFinite(price)) return null;
+
+  return { price, deliveryDays: result.delivery_days ?? null };
+}
+
+// Перебираем все наши точки сдачи и выбираем самую дешёвую доставку до ПВЗ.
+export async function cheapestDropoff(target: {
+  id: string;
+  latitude: number;
+  longitude: number;
+}) {
+  const quotes = await Promise.all(
+    DROPOFF_POINTS.map(async (point) => {
+      const quote = await priceFromDropoff(point.address, target.id);
+      return quote ? { point, ...quote } : null;
+    })
+  );
+
+  const usable = quotes.filter(Boolean) as {
+    point: (typeof DROPOFF_POINTS)[number];
+    price: number;
+    deliveryDays: number | null;
+  }[];
+
+  if (usable.length === 0) {
+    return { point: nearestDropoff(target), price: null, deliveryDays: null };
+  }
+
+  return usable.sort((a, b) => a.price - b.price)[0]!;
 }
 
 type RawPickupPoint = {
@@ -240,41 +316,25 @@ export const searchPickupPoints = createServerFn({ method: "POST" })
 export const calculateDeliveryPrice = createServerFn({ method: "POST" })
   .validator((data) => priceInputSchema.parse(data))
   .handler(async ({ data }) => {
-    const dropoff = nearestDropoff(data.pickupPoint);
-
     // Базовый тариф считаем через «Платформу»: посылку мы сдаём сами, курьер не нужен.
     if (data.tariff === "standard") {
-      const response = await fetch(`${YANDEX_PLATFORM_BASE_URL}/pricing-calculator`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          client_price: 3333,
-          total_assessed_price: 3333,
-          total_weight: 500,
-          tariff: "self_pickup",
-          source: { address: dropoff.address },
-          destination: { platform_station_id: data.pickupPoint.id },
-        }),
-      });
+      const best = await cheapestDropoff(data.pickupPoint);
 
-      const text = await response.text();
-      if (!response.ok) {
-        console.error("Yandex pricing-calculator error", response.status, text);
+      if (best.price === null) {
         throw new Error("Не удалось рассчитать доставку в этот пункт выдачи.");
       }
 
-      const result = JSON.parse(text) as { pricing_total?: string; delivery_days?: number };
-      const price = Number.parseFloat(String(result.pricing_total ?? "").replace(",", "."));
-
       return {
-        price: Number.isFinite(price) ? Math.round(price) : null,
+        price: Math.round(best.price),
         currency: "RUB",
         offer: null,
-        dropoff: dropoff.address,
+        dropoff: best.point.address,
         tariff: data.tariff,
-        deliveryDays: result.delivery_days ?? null,
+        deliveryDays: best.deliveryDays,
       };
     }
+
+    const dropoff = nearestDropoff(data.pickupPoint);
 
     // Экспресс доступен не везде — считаем через cargo API.
     let lastText = "";
@@ -349,7 +409,10 @@ export const createDeliveryOrder = createServerFn({ method: "POST" })
 
     const items = defaultItems();
     const pickupAddress = `${data.pickupPoint.name}, ${data.pickupPoint.address}`;
-    const dropoff = nearestDropoff(data.pickupPoint);
+    const dropoff =
+      data.tariff === "standard"
+        ? (await cheapestDropoff(data.pickupPoint)).point
+        : nearestDropoff(data.pickupPoint);
     const tariffLabel = data.tariff === "express" ? "Экспресс" : "Базовый тариф";
     const orderNumber = data.orderNumber || `RS-${Date.now().toString().slice(-3)}`;
 
