@@ -54,9 +54,16 @@ export function sitemapPathForLocation(
     : undefined;
 }
 
+export interface SitemapImage {
+  loc: string;
+  title?: string;
+  caption?: string;
+}
+
 export interface SitemapEntry {
   path: string;
   lastmod?: string;
+  images?: SitemapImage[];
 }
 
 function isSafeSitemapPath(pathname: string): boolean {
@@ -93,9 +100,18 @@ export function sitemapXML(baseURL: string, entries: SitemapEntry[]): string {
     const url = new URL(entry.path, origin);
     if (seen.has(url.href)) continue;
     seen.add(url.href);
+    const images = (entry.images ?? [])
+      .map((image) => {
+        const imageURL = new URL(image.loc, origin);
+        if (!/^https?:$/.test(imageURL.protocol)) return "";
+        return `<image:image><image:loc>${escape(imageURL.href)}</image:loc>${
+          image.title ? `<image:title>${escape(image.title)}</image:title>` : ""
+        }${image.caption ? `<image:caption>${escape(image.caption)}</image:caption>` : ""}</image:image>`;
+      })
+      .join("");
     urls.push(
-      `<url><loc>${escape(url.href)}</loc>${entry.lastmod ? `<lastmod>${escape(entry.lastmod)}</lastmod>` : ""}</url>`,
+      `<url><loc>${escape(url.href)}</loc>${entry.lastmod ? `<lastmod>${escape(entry.lastmod)}</lastmod>` : ""}${images}</url>`,
     );
   }
-  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">${urls.join("")}</urlset>`;
 }

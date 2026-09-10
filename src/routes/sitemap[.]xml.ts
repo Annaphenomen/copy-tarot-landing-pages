@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getRouterInstance } from "@tanstack/react-start";
 import { sitemapStaticPaths, sitemapXML, type SitemapEntry } from "@/lib/sitemap";
+import { SITE_IMAGES } from "@/data/site-images";
 
 const BASE_URL = "https://taroroflan.ru";
 
@@ -10,7 +11,18 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         const router = await getRouterInstance();
-        const entries: SitemapEntry[] = sitemapStaticPaths(router).map((path) => ({ path }));
+        const entries: SitemapEntry[] = sitemapStaticPaths(router).map((path) =>
+          path === "/"
+            ? {
+                path,
+                images: SITE_IMAGES.map((image) => ({
+                  loc: encodeURI(image.url),
+                  title: image.title,
+                  caption: image.caption,
+                })),
+              }
+            : { path },
+        );
         if (entries.length === 0) {
           return new Response(
             'No pages are included in this sitemap. Check route decisions and ancestor exclusions. Setting "exclude-subtree" on the root excludes the entire site.',
