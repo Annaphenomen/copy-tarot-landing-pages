@@ -58,14 +58,40 @@ import temperance from "@/assets/cards/temperance.jpg.asset.json";
 const PRICE = 3333; // с доставкой
 
 const CARDS = [
-  { src: encodeURI(wands8.url), title: "Восьмёрка жезлов", caption: "Surprise, surprise" },
-  { src: encodeURI(wandsPage.url), title: "Паж жезлов", caption: "Не пидиди — делай" },
-  { src: encodeURI(cups5.url), title: "Пятёрка кубков", caption: "Страшно, очень страшно" },
-  { src: encodeURI(cups4.url), title: "Четвёрка кубков", caption: "Пацан к успеху шёл" },
+  {
+    src: encodeURI(wands8.url),
+    title: "Восьмёрка жезлов",
+    caption: "Surprise, surprise",
+    meaning:
+      "Значение карты: события ускоряются, новости прилетают внезапно. Восьмёрка жезлов в таро — про скорость, сообщения и решения, которые уже не отложить.",
+  },
+  {
+    src: encodeURI(wandsPage.url),
+    title: "Паж жезлов",
+    caption: "Не пидиди — делай",
+    meaning:
+      "Значение карты: искра идеи и смелость начать. Паж жезлов советует не обсуждать замысел бесконечно, а сделать первый шаг сегодня.",
+  },
+  {
+    src: encodeURI(cups5.url),
+    title: "Пятёрка кубков",
+    caption: "Страшно, очень страшно",
+    meaning:
+      "Значение карты: сожаление о потерянном. Пятёрка кубков напоминает, что за спиной остались целые кубки — стоит обернуться, прежде чем горевать.",
+  },
+  {
+    src: encodeURI(cups4.url),
+    title: "Четвёрка кубков",
+    caption: "Пацан к успеху шёл",
+    meaning:
+      "Значение карты: скука и апатия. Четвёрка кубков в раскладе таро говорит, что предложение уже перед вами, но вы его не замечаете.",
+  },
   {
     src: encodeURI(cupsPage.url),
     title: "Паж кубков",
     caption: "Мужчина определяется делом, а не словом",
+    meaning:
+      "Значение карты: нежное начало, признание, творческий порыв. Паж кубков часто выпадает в раскладе таро на отношения как знак искреннего интереса.",
   },
   { src: encodeURI(swords5.url), title: "Пятёрка мечей", caption: "Всё херня, давай по новой" },
   { src: encodeURI(pentacles9.url), title: "Девятка пентаклей", caption: "Намана" },
@@ -79,7 +105,8 @@ const CARDS = [
   { src: encodeURI(moon.url), title: "Луна", caption: "Лунная призма, дай мне силу" },
   { src: encodeURI(sun.url), title: "Солнце", caption: "И если есть порох, дай огня" },
   { src: encodeURI(world.url), title: "Мир", caption: "Покоя, умиротворения и вот этой гармонии" },
-];
+] as { src: string; title: string; caption: string; meaning?: string }[];
+
 
 
 const HERO_CARD = CARDS[0]!;
