@@ -58,14 +58,40 @@ import temperance from "@/assets/cards/temperance.jpg.asset.json";
 const PRICE = 3333; // с доставкой
 
 const CARDS = [
-  { src: encodeURI(wands8.url), title: "Восьмёрка жезлов", caption: "Surprise, surprise" },
-  { src: encodeURI(wandsPage.url), title: "Паж жезлов", caption: "Не пидиди — делай" },
-  { src: encodeURI(cups5.url), title: "Пятёрка кубков", caption: "Страшно, очень страшно" },
-  { src: encodeURI(cups4.url), title: "Четвёрка кубков", caption: "Пацан к успеху шёл" },
+  {
+    src: encodeURI(wands8.url),
+    title: "Восьмёрка жезлов",
+    caption: "Surprise, surprise",
+    meaning:
+      "Значение карты: события ускоряются, новости прилетают внезапно. Восьмёрка жезлов в таро — про скорость, сообщения и решения, которые уже не отложить.",
+  },
+  {
+    src: encodeURI(wandsPage.url),
+    title: "Паж жезлов",
+    caption: "Не пидиди — делай",
+    meaning:
+      "Значение карты: искра идеи и смелость начать. Паж жезлов советует не обсуждать замысел бесконечно, а сделать первый шаг сегодня.",
+  },
+  {
+    src: encodeURI(cups5.url),
+    title: "Пятёрка кубков",
+    caption: "Страшно, очень страшно",
+    meaning:
+      "Значение карты: сожаление о потерянном. Пятёрка кубков напоминает, что за спиной остались целые кубки — стоит обернуться, прежде чем горевать.",
+  },
+  {
+    src: encodeURI(cups4.url),
+    title: "Четвёрка кубков",
+    caption: "Пацан к успеху шёл",
+    meaning:
+      "Значение карты: скука и апатия. Четвёрка кубков в раскладе таро говорит, что предложение уже перед вами, но вы его не замечаете.",
+  },
   {
     src: encodeURI(cupsPage.url),
     title: "Паж кубков",
     caption: "Мужчина определяется делом, а не словом",
+    meaning:
+      "Значение карты: нежное начало, признание, творческий порыв. Паж кубков часто выпадает в раскладе таро на отношения как знак искреннего интереса.",
   },
   { src: encodeURI(swords5.url), title: "Пятёрка мечей", caption: "Всё херня, давай по новой" },
   { src: encodeURI(pentacles9.url), title: "Девятка пентаклей", caption: "Намана" },
@@ -79,7 +105,8 @@ const CARDS = [
   { src: encodeURI(moon.url), title: "Луна", caption: "Лунная призма, дай мне силу" },
   { src: encodeURI(sun.url), title: "Солнце", caption: "И если есть порох, дай огня" },
   { src: encodeURI(world.url), title: "Мир", caption: "Покоя, умиротворения и вот этой гармонии" },
-];
+] as { src: string; title: string; caption: string; meaning?: string }[];
+
 
 
 const HERO_CARD = CARDS[0]!;
@@ -88,18 +115,24 @@ const HERO_CARD = CARDS[0]!;
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Рофлан Судьбы — авторская колода с иллюстрациями" },
+      { title: "Таро Рофлан Судьбы — купить колоду таро 78 карт, 3333 ₽" },
       {
         name: "description",
         content:
-          "Авторская колода Таро с ручными иллюстрациями и мемными подписями. Плотный картон, подарочная коробка, инструкция в комплекте. Цена 3333 ₽ с доставкой.",
+          "Авторская колода карт таро из 78 арканов: значения карт таро, толкование, расклад на отношения и таро дня онлайн. Подарочная коробка и инструкция. 3333 ₽ с доставкой.",
       },
-      { property: "og:title", content: "Рофлан Судьбы — авторская колода с иллюстрациями" },
+      {
+        name: "keywords",
+        content:
+          "колода таро, таро купить, карты таро купить, колода карт таро, значение карт таро, толкование таро, перевёрнутые карты таро, расклад таро на отношения, таро дня, таро на неделю",
+      },
+      { property: "og:title", content: "Таро Рофлан Судьбы — купить колоду таро 78 карт" },
       {
         property: "og:description",
         content:
-          "Авторская колода Таро с ручными иллюстрациями и мемными подписями. Подарочная коробка и инструкция в комплекте.",
+          "Авторская колода карт таро: 78 арканов, значения и толкования в инструкции, таро дня онлайн. 3333 ₽ с доставкой.",
       },
+
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://taroroflan.ru/" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -168,7 +201,28 @@ const FAQS = [
     question: "Как быстро отправляете?",
     answer: "Отправляем в течение 1–2 рабочих дней после подтверждения заказа.",
   },
+  {
+    question: "Что означают карты таро и где искать толкование?",
+    answer:
+      "Каждая карта — это сюжет: ситуация, совет и предупреждение. Что означают карты таро в нашей колоде, расписано в инструкции: короткое толкование таро, ключевые слова и пример вопроса, на который карта отвечает лучше всего.",
+  },
+  {
+    question: "А перевёрнутые карты таро в колоде есть?",
+    answer:
+      "Есть, если вам так привычнее: перевёрнутые карты таро обычно читают как ослабленное или заблокированное значение прямой карты. Но наша колода отлично работает и только в прямых положениях — так гадают на сайте в разделе «Таро дня».",
+  },
+  {
+    question: "Как сделать расклад таро на отношения?",
+    answer:
+      "Самый простой расклад таро на отношения — три карты: я, партнёр, что между нами. Для таро на неделю раскладывайте семь карт по дням. Оба расклада разобраны в инструкции с примерами.",
+  },
+  {
+    question: "Можно задать вопрос таро прямо на сайте?",
+    answer:
+      "Да. Поднимитесь к разделу «Таро дня», задумайте вопрос и вытяните карту из полной колоды 78 арканов — это бесплатно и без регистрации.",
+  },
 ];
+
 
 const REVIEWS = [
   {
@@ -208,7 +262,7 @@ function Header({ cartCount, openCart }: { cartCount: number; openCart: () => vo
   const navLinks = [
     { label: "Колода", href: "#deck" },
     { label: "Карты", href: "#cards" },
-    { label: "Карта дня", href: "#randomizer" },
+    { label: "Таро дня", href: "#randomizer" },
     { label: "Отзывы", href: "#reviews" },
     { label: "Вопросы", href: "#faq" },
   ];
@@ -432,7 +486,9 @@ function CardsSection() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <span className="text-xs font-medium uppercase tracking-wider text-gold">Небольшой тизер</span>
-              <h3 className="mt-2 font-display text-2xl text-foreground sm:text-3xl">Пять карт из семидесяти восьми</h3>
+              <h3 className="mt-2 font-display text-2xl text-foreground sm:text-3xl">
+                Пять карт из семидесяти восьми — со значениями
+              </h3>
             </div>
             <span className="hidden text-sm text-muted-foreground sm:block">Остальные останутся сюрпризом</span>
           </div>
@@ -442,7 +498,7 @@ function CardsSection() {
                 <div className="overflow-hidden rounded-md border border-border/40 bg-card transition-colors group-hover:border-gold/40">
                   <img
                     src={card.src}
-                    alt={`Карта «${card.title}»`}
+                    alt={`Карта «${card.title}» — значение карты таро`}
                     className="aspect-[2/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                     loading="lazy"
                   />
@@ -453,7 +509,19 @@ function CardsSection() {
               </figure>
             ))}
           </div>
+
+          <dl className="mt-8 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            {previewCards
+              .filter((card) => card.meaning)
+              .map((card) => (
+                <div key={card.title}>
+                  <dt className="font-display text-base text-foreground">{card.title}</dt>
+                  <dd className="mt-1 text-sm leading-relaxed text-muted-foreground">{card.meaning}</dd>
+                </div>
+              ))}
+          </dl>
         </div>
+
       </div>
     </section>
   );
@@ -483,15 +551,16 @@ function RandomizerSection() {
     <section id="randomizer" className="bg-secondary/30 px-4 py-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl text-center">
         <span className="text-sm font-medium uppercase tracking-wider text-gold">
-          Карта дня
+          Таро дня онлайн
         </span>
         <h2 className="mt-3 font-display text-4xl text-foreground sm:text-5xl">
-          Дать карту
+          Таро дня
         </h2>
         <p className="mt-4 text-lg text-muted-foreground">
-          Задумайте вопрос и нажмите кнопку — полная колода из 78 карт вытянет одну случайную карту.
-          Только прямые положения, без перевёрнутых.
+          Задайте вопрос таро и нажмите кнопку — полная колода из 78 карт вытянет вашу карту дня.
+          Только прямые положения, без перевёрнутых карт. Бесплатно и без регистрации.
         </p>
+
 
         <div className="mt-12 flex flex-col items-center">
           <div className="relative flex aspect-[862/1453] w-56 items-center justify-center overflow-hidden rounded-2xl border border-gold/30 bg-card sm:w-64">
