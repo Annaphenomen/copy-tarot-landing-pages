@@ -568,14 +568,14 @@ function RandomizerSection() {
               <img
                 key={drawn?.key ?? 0}
                 src={card.src}
-                alt={card.title}
+                alt={`Таро дня: карта «${card.title}» из колоды 78 арканов`}
                 className="h-full w-full animate-scale-in object-cover"
               />
             ) : (
               <div className="relative h-full w-full">
                 <img
                   src={cardCover.url}
-                  alt="Рубашка колоды"
+                  alt="Рубашка карт колоды таро «Рофлан Судьбы»"
                   className={`h-full w-full object-cover ${drawing ? "animate-pulse" : ""}`}
                 />
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/55">
@@ -648,7 +648,7 @@ function ProductSection({
             <img
               key={card.title}
               src={card.src}
-              alt={`Карта «${card.title}»`}
+              alt={`Карта таро «${card.title}» из колоды «Рофлан Судьбы»`}
               className="w-full rounded-xl border border-border/40"
               loading="lazy"
             />

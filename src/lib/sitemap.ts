@@ -54,9 +54,16 @@ export function sitemapPathForLocation(
     : undefined;
 }
 
+export interface SitemapImage {
+  loc: string;
+  title?: string;
+  caption?: string;
+}
+
 export interface SitemapEntry {
   path: string;
   lastmod?: string;
+  images?: SitemapImage[];
 }
 
 function isSafeSitemapPath(pathname: string): boolean {
