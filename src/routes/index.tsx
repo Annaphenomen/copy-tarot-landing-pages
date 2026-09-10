@@ -486,7 +486,9 @@ function CardsSection() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <span className="text-xs font-medium uppercase tracking-wider text-gold">Небольшой тизер</span>
-              <h3 className="mt-2 font-display text-2xl text-foreground sm:text-3xl">Пять карт из семидесяти восьми</h3>
+              <h3 className="mt-2 font-display text-2xl text-foreground sm:text-3xl">
+                Пять карт из семидесяти восьми — со значениями
+              </h3>
             </div>
             <span className="hidden text-sm text-muted-foreground sm:block">Остальные останутся сюрпризом</span>
           </div>
@@ -496,7 +498,7 @@ function CardsSection() {
                 <div className="overflow-hidden rounded-md border border-border/40 bg-card transition-colors group-hover:border-gold/40">
                   <img
                     src={card.src}
-                    alt={`Карта «${card.title}»`}
+                    alt={`Карта «${card.title}» — значение карты таро`}
                     className="aspect-[2/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                     loading="lazy"
                   />
@@ -504,11 +506,22 @@ function CardsSection() {
                 <figcaption className="mt-2 hidden text-center text-xs text-muted-foreground sm:block">
                   {card.title}
                 </figcaption>
-
               </figure>
             ))}
           </div>
+
+          <dl className="mt-8 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            {previewCards
+              .filter((card) => card.meaning)
+              .map((card) => (
+                <div key={card.title}>
+                  <dt className="font-display text-base text-foreground">{card.title}</dt>
+                  <dd className="mt-1 text-sm leading-relaxed text-muted-foreground">{card.meaning}</dd>
+                </div>
+              ))}
+          </dl>
         </div>
+
       </div>
     </section>
   );
