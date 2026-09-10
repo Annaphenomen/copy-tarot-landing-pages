@@ -504,6 +504,7 @@ function CardsSection() {
                 <figcaption className="mt-2 hidden text-center text-xs text-muted-foreground sm:block">
                   {card.title}
                 </figcaption>
+
               </figure>
             ))}
           </div>
