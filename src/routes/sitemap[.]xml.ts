@@ -11,7 +11,17 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         const router = await getRouterInstance();
-        const entries: SitemapEntry[] = sitemapStaticPaths(router).map((path) => ({ path }));
+        const entries: SitemapEntry[] = sitemapStaticPaths(router).map((path) => ({
+          path,
+          images:
+            path === "/"
+              ? SITE_IMAGES.map((image) => ({
+                  loc: encodeURI(image.url),
+                  title: image.title,
+                  caption: image.caption,
+                }))
+              : undefined,
+        }));
         if (entries.length === 0) {
           return new Response(
             'No pages are included in this sitemap. Check route decisions and ancestor exclusions. Setting "exclude-subtree" on the root excludes the entire site.',
