@@ -20,6 +20,7 @@ export const Route = createFileRoute("/offer")({
     ],
     links: [{ rel: "canonical", href: "https://mystic-market-page.lovable.app/offer" }],
   }),
+  staticData: { sitemap: true },
   component: OfferPage,
 });
 

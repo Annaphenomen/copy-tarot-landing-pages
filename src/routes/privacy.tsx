@@ -20,6 +20,7 @@ export const Route = createFileRoute("/privacy")({
     ],
     links: [{ rel: "canonical", href: "https://mystic-market-page.lovable.app/privacy" }],
   }),
+  staticData: { sitemap: true },
   component: PrivacyPage,
 });
 
