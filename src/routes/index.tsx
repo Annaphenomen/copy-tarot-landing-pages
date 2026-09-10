@@ -22,6 +22,7 @@ import tarotInHand from "@/assets/product/tarot-in-hand.jpg.asset.json";
 import tarotFriends from "@/assets/product/tarot-friends.jpg.asset.json";
 import tgQr from "@/assets/tg-qr-mystic.png.asset.json";
 import { FULL_DECK } from "@/data/full-deck";
+import { PRIMARY_IMAGES } from "@/data/site-images";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -135,7 +136,10 @@ export const Route = createFileRoute("/")({
 
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://taroroflan.ru/" },
+      { property: "og:image", content: `https://taroroflan.ru${PRIMARY_IMAGES[0]}` },
+      { property: "og:image:alt", content: "Колода таро «Рофлан Судьбы» — 78 карт в подарочной коробке" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: `https://taroroflan.ru${PRIMARY_IMAGES[0]}` },
     ],
     links: [{ rel: "canonical", href: "https://taroroflan.ru/" }],
     scripts: [
@@ -149,6 +153,7 @@ export const Route = createFileRoute("/")({
             "Авторская колода Таро из 78 карт с ручными иллюстрациями и мемными подписями. Плотный картон, подарочная коробка и инструкция в комплекте.",
           brand: { "@type": "Brand", name: "Рофлан Судьбы" },
           category: "Карты Таро",
+          image: PRIMARY_IMAGES.map((url) => `https://taroroflan.ru${url}`),
           url: "https://taroroflan.ru/",
           offers: {
             "@type": "Offer",
