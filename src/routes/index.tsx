@@ -262,7 +262,7 @@ function Header({ cartCount, openCart }: { cartCount: number; openCart: () => vo
   const navLinks = [
     { label: "Колода", href: "#deck" },
     { label: "Карты", href: "#cards" },
-    { label: "Карта дня", href: "#randomizer" },
+    { label: "Таро дня", href: "#randomizer" },
     { label: "Отзывы", href: "#reviews" },
     { label: "Вопросы", href: "#faq" },
   ];
