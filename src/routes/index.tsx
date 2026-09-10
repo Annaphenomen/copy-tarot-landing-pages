@@ -101,10 +101,35 @@ export const Route = createFileRoute("/")({
           "Авторская колода Таро с ручными иллюстрациями и мемными подписями. Подарочная коробка и инструкция в комплекте.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://taroroflan.ru/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "/" }],
+    links: [{ rel: "canonical", href: "https://taroroflan.ru/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: "Таро Рофлан Судьбы",
+          description:
+            "Авторская колода Таро из 78 карт с ручными иллюстрациями и мемными подписями. Плотный картон, подарочная коробка и инструкция в комплекте.",
+          brand: { "@type": "Brand", name: "Рофлан Судьбы" },
+          category: "Карты Таро",
+          url: "https://taroroflan.ru/",
+          offers: {
+            "@type": "Offer",
+            price: "3333",
+            priceCurrency: "RUB",
+            availability: "https://schema.org/InStock",
+            url: "https://taroroflan.ru/",
+            seller: { "@type": "Organization", name: "ООО «ФЕНОМЕН»" },
+          },
+        }),
+      },
+    ],
   }),
+  staticData: { sitemap: true },
   component: LandingPage,
 });
 
