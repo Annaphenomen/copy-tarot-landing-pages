@@ -171,6 +171,16 @@ export const Route = createFileRoute("/")({
           },
         }),
       },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Таро Рофлан Судьбы",
+          alternateName: ["Таро Рофлан", "Таророфлан", "Рофлан Судьбы", "Рофлан"],
+          url: "https://taroroflan.ru/",
+        }),
+      },
     ],
   }),
   staticData: { sitemap: true },
