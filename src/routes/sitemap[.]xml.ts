@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getRouterInstance } from "@tanstack/react-start";
 import { sitemapStaticPaths, sitemapXML, type SitemapEntry } from "@/lib/sitemap";
+import { SITE_IMAGES } from "@/data/site-images";
 
 const BASE_URL = "https://taroroflan.ru";
 
