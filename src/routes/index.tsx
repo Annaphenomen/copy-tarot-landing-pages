@@ -551,15 +551,16 @@ function RandomizerSection() {
     <section id="randomizer" className="bg-secondary/30 px-4 py-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl text-center">
         <span className="text-sm font-medium uppercase tracking-wider text-gold">
-          Карта дня
+          Таро дня онлайн
         </span>
         <h2 className="mt-3 font-display text-4xl text-foreground sm:text-5xl">
-          Дать карту
+          Таро дня
         </h2>
         <p className="mt-4 text-lg text-muted-foreground">
-          Задумайте вопрос и нажмите кнопку — полная колода из 78 карт вытянет одну случайную карту.
-          Только прямые положения, без перевёрнутых.
+          Задайте вопрос таро и нажмите кнопку — полная колода из 78 карт вытянет вашу карту дня.
+          Только прямые положения, без перевёрнутых карт. Бесплатно и без регистрации.
         </p>
+
 
         <div className="mt-12 flex flex-col items-center">
           <div className="relative flex aspect-[862/1453] w-56 items-center justify-center overflow-hidden rounded-2xl border border-gold/30 bg-card sm:w-64">
