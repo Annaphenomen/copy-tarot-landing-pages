@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2, Loader2, MapPin, Package, QrCode, Search, Smartphone } from "lucide-react";
 
-import sberQr from "@/assets/sber-pay-qr.png.asset.json";
+import sberQr from "@/assets/sber-pay-qr-v2.png.asset.json";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,8 +46,9 @@ function makeOrderId() {
   return `RS-${Date.now().toString().slice(-6)}`;
 }
 
-// Статический QR «Плати QR» от Сбера (СБП). Сумма вводится покупателем вручную.
-const SBER_PAY_LINK = "https://qr.nspk.ru/AS2A007NG12ADJQV9RGR7RJ50PPHEO9M";
+// QR «Плати QR» Сбера (СБП). Сумма 3333 ₽ подставляется автоматически;
+// при заказе нескольких колод покупатель меняет сумму вручную.
+const SBER_PAY_LINK = "https://qr.nspk.ru/AS20001HTS8I4U228G2QSOFHL6G2IT59";
 
 export function PaymentDialog({
   open,
