@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2, Loader2, MapPin, Package, QrCode, Search, Smartphone } from "lucide-react";
 
-import sberQr from "@/assets/sber-pay-qr-v2.png.asset.json";
+import sberQr from "@/assets/sber-pay-qr-v3.png.asset.json";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
