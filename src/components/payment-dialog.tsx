@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2, Loader2, MapPin, Package, QrCode, Search, Smartphone } from "lucide-react";
 
-import sberQr from "@/assets/sber-pay-qr.png.asset.json";
+import sberQr from "@/assets/sber-pay-qr-v2.png.asset.json";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,8 +46,9 @@ function makeOrderId() {
   return `RS-${Date.now().toString().slice(-6)}`;
 }
 
-// Статический QR «Плати QR» от Сбера (СБП). Сумма вводится покупателем вручную.
-const SBER_PAY_LINK = "https://qr.nspk.ru/AS2A007NG12ADJQV9RGR7RJ50PPHEO9M";
+// QR «Плати QR» Сбера (СБП). Сумма 3333 ₽ подставляется автоматически;
+// при заказе нескольких колод покупатель меняет сумму вручную.
+const SBER_PAY_LINK = "https://qr.nspk.ru/AS20001HTS8I4U228G2QSOFHL6G2IT59";
 
 export function PaymentDialog({
   open,
@@ -525,17 +526,23 @@ export function PaymentDialog({
                   на QR-код или откройте его в приложении банка.
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">2.</span> Введите сумму{" "}
-                  <span className="font-medium text-foreground">{finalTotal} ₽</span> — код
-                  универсальный, сумма не подставляется автоматически.
+                  <span className="font-medium text-foreground">2.</span> Проверьте сумму: в
+                  приложении подставится{" "}
+                  <span className="font-medium text-foreground">3333 ₽</span> за одну колоду.
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">3.</span> В комментарии к платежу
+                  <span className="font-medium text-foreground">3.</span> Если заказываете несколько
+                  колод — измените сумму вручную на{" "}
+                  <span className="font-medium text-foreground">{finalTotal} ₽</span>
+                  {quantity > 1 ? ` (3333 ₽ × ${quantity})` : ""}.
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">4.</span> В комментарии к платежу
                   укажите номер заказа{" "}
                   <span className="font-medium text-foreground">№{orderId}</span>.
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">4.</span> Подтвердите оплату и
+                  <span className="font-medium text-foreground">5.</span> Подтвердите оплату и
                   нажмите «Я оплатил» — мы оформим доставку в выбранный ПВЗ.
                 </li>
               </ol>
