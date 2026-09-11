@@ -526,17 +526,23 @@ export function PaymentDialog({
                   на QR-код или откройте его в приложении банка.
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">2.</span> Введите сумму{" "}
-                  <span className="font-medium text-foreground">{finalTotal} ₽</span> — код
-                  универсальный, сумма не подставляется автоматически.
+                  <span className="font-medium text-foreground">2.</span> Проверьте сумму: в
+                  приложении подставится{" "}
+                  <span className="font-medium text-foreground">3333 ₽</span> за одну колоду.
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">3.</span> В комментарии к платежу
+                  <span className="font-medium text-foreground">3.</span> Если заказываете несколько
+                  колод — измените сумму вручную на{" "}
+                  <span className="font-medium text-foreground">{finalTotal} ₽</span>
+                  {quantity > 1 ? ` (3333 ₽ × ${quantity})` : ""}.
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">4.</span> В комментарии к платежу
                   укажите номер заказа{" "}
                   <span className="font-medium text-foreground">№{orderId}</span>.
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">4.</span> Подтвердите оплату и
+                  <span className="font-medium text-foreground">5.</span> Подтвердите оплату и
                   нажмите «Я оплатил» — мы оформим доставку в выбранный ПВЗ.
                 </li>
               </ol>
