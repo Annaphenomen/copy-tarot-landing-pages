@@ -21,7 +21,7 @@ import tarotSpread from "@/assets/product/tarot-spread.jpg.asset.json";
 import tarotInHand from "@/assets/product/tarot-in-hand.jpg.asset.json";
 import tarotFriends from "@/assets/product/tarot-friends.jpg.asset.json";
 import tgQr from "@/assets/tg-qr-mystic.png.asset.json";
-import vkQr from "@/assets/vk-qr-unified.png.asset.json";
+import vkQr from "@/assets/vk-qr-reference-v2.png.asset.json";
 import { FULL_DECK } from "@/data/full-deck";
 import { drawDailyCard } from "@/lib/daily-card.functions";
 import { PRIMARY_IMAGES } from "@/data/site-images";
