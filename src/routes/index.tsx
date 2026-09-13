@@ -22,6 +22,7 @@ import tarotInHand from "@/assets/product/tarot-in-hand.jpg.asset.json";
 import tarotFriends from "@/assets/product/tarot-friends.jpg.asset.json";
 import tgQr from "@/assets/tg-qr-mystic.png.asset.json";
 import { FULL_DECK } from "@/data/full-deck";
+import { drawDailyCard } from "@/lib/daily-card.functions";
 import { PRIMARY_IMAGES } from "@/data/site-images";
 import { Button } from "@/components/ui/button";
 import {
