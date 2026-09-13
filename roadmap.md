@@ -1,7 +1,6 @@
 # Roadmap
 
-## In progress
-- [ ] Favicon: black background, bold gold Cyrillic "Р".
-
-## Pending
-- [ ] Answer: how to clear site cache in Google.
+## Done
+- [x] Favicon: black background, bold gold Cyrillic "Р".
+- [x] Publish site so new favicon appears.
+- [x] Explain how to clear Google cache.
