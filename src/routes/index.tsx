@@ -556,18 +556,21 @@ function CardsSection() {
 function RandomizerSection() {
   const [drawn, setDrawn] = useState<{ index: number; key: number } | null>(null);
   const [drawing, setDrawing] = useState(false);
+  const [alreadyDrawn, setAlreadyDrawn] = useState(false);
 
-  const draw = () => {
+  const draw = async () => {
     setDrawing(true);
-    window.setTimeout(() => {
-      setDrawn((prev) => {
-        let index = Math.floor(Math.random() * FULL_DECK.length);
-        if (prev && FULL_DECK.length > 1) {
-          while (index === prev.index) index = Math.floor(Math.random() * FULL_DECK.length);
-        }
-        return { index, key: (prev?.key ?? 0) + 1 };
-      });
-      setDrawing(false);
+    window.setTimeout(async () => {
+      try {
+        const result = await drawDailyCard();
+        setDrawn((prev) => ({
+          index: result.cardIndex,
+          key: (prev?.key ?? 0) + 1,
+        }));
+        setAlreadyDrawn(result.alreadyDrawn);
+      } finally {
+        setDrawing(false);
+      }
     }, 450);
   };
 
@@ -625,6 +628,13 @@ function RandomizerSection() {
             <Sparkles className="mr-2 h-4 w-4" />
             {drawn ? "Ещё раз" : "Дать карту"}
           </Button>
+
+          {alreadyDrawn && (
+            <p className="mt-4 max-w-sm text-sm text-muted-foreground">
+              Твоя карта дня уже вытянута — она останется той же самой до конца суток.
+              Возвращайся завтра за новой.
+            </p>
+          )}
 
           <div className="mt-12 flex flex-col items-center gap-6 rounded-2xl border border-gold/20 bg-background/40 p-6 sm:p-8">
             <p className="max-w-md text-base text-muted-foreground sm:text-lg">
