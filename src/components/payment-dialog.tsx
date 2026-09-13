@@ -20,7 +20,6 @@ import {
   PICKUP_CITIES,
   calculateDeliveryPrice,
   createDeliveryOrder,
-  reserveOrderNumber,
   searchCities,
   searchPickupPoints,
 } from "@/lib/yandex-delivery.functions";
@@ -42,10 +41,6 @@ export type OrderContacts = {
   email: string;
 };
 
-function makeOrderId() {
-  return `RS-${Date.now().toString().slice(-6)}`;
-}
-
 // QR «Плати QR» Сбера (СБП). Сумма 3333 ₽ подставляется автоматически;
 // при заказе нескольких колод покупатель меняет сумму вручную.
 const SBER_PAY_LINK = "https://qr.nspk.ru/AS20001HTS8I4U228G2QSOFHL6G2IT59";
@@ -64,8 +59,7 @@ export function PaymentDialog({
   onPaid: () => void;
 }) {
   const [step, setStep] = useState<Step>("contacts");
-  const [orderId, setOrderId] = useState("");
-  const [orderSeq, setOrderSeq] = useState<number | null>(null);
+  const [orderNumber, setOrderNumber] = useState("");
   const [checking, setChecking] = useState(false);
   const [consent, setConsent] = useState(false);
   const [contacts, setContacts] = useState<OrderContacts | null>(null);
@@ -87,7 +81,6 @@ export function PaymentDialog({
 
   const findPoints = useServerFn(searchPickupPoints);
   const findCities = useServerFn(searchCities);
-  const reserveNumber = useServerFn(reserveOrderNumber);
 
   const lookupCity = async () => {
     const query = cityQuery.trim();
@@ -124,6 +117,7 @@ export function PaymentDialog({
 
     const timer = setTimeout(() => {
       setStep("contacts");
+      setOrderNumber("");
       setChecking(false);
       setConsent(false);
       setContacts(null);
@@ -199,23 +193,15 @@ export function PaymentDialog({
   };
 
 
-  const startPayment = async () => {
+  const startPayment = () => {
     setStep("qr");
-    try {
-      const reserved = await reserveNumber({ data: undefined });
-      setOrderId(reserved.orderNumber);
-      setOrderSeq(reserved.orderSeq);
-    } catch (err) {
-      console.error(err);
-      setOrderId(makeOrderId());
-    }
   };
 
   const confirmPayment = async () => {
     if (!contacts || !selectedPoint) return;
     setChecking(true);
     try {
-      await createOrder({
+      const result = await createOrder({
         data: {
           customerName: contacts.name,
           customerPhone: contacts.contact,
@@ -223,10 +209,9 @@ export function PaymentDialog({
           pickupPoint: selectedPoint,
           tariff: "standard",
           quantity: Math.max(1, quantity),
-          orderNumber: orderId || undefined,
-          orderSeq: orderSeq ?? undefined,
         },
       });
+      setOrderNumber(result.orderNumber);
       setChecking(false);
       setStep("done");
       onPaid();
@@ -500,8 +485,8 @@ export function PaymentDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Оплата по QR</DialogTitle>
               <DialogDescription>
-                Заказ №{orderId} на {finalTotal} ₽. Отсканируйте код камерой телефона или
-                приложением банка.
+                Оплатите заказ на {finalTotal} ₽. Номер заказа будет присвоен после подтверждения
+                оплаты.
               </DialogDescription>
             </DialogHeader>
 
@@ -515,7 +500,7 @@ export function PaymentDialog({
               >
                 <img
                   src={sberQr.url}
-                  alt={`QR-код для оплаты заказа ${orderId}`}
+                  alt={`QR-код для оплаты заказа`}
                   className="h-52 w-52"
                 />
               </a>
@@ -537,13 +522,8 @@ export function PaymentDialog({
                   {quantity > 1 ? ` (3333 ₽ × ${quantity})` : ""}.
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">4.</span> В комментарии к платежу
-                  укажите номер заказа{" "}
-                  <span className="font-medium text-foreground">№{orderId}</span>.
-                </li>
-                <li>
-                  <span className="font-medium text-foreground">5.</span> Подтвердите оплату и
-                  нажмите «Я оплатил» — мы оформим доставку в выбранный ПВЗ.
+                  <span className="font-medium text-foreground">4.</span> Подтвердите оплату и
+                  нажмите «Я оплатил» — мы оформим заказ и доставку в выбранный ПВЗ.
                 </li>
               </ol>
 
@@ -581,7 +561,7 @@ export function PaymentDialog({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Спасибо за заказ!</DialogTitle>
               <DialogDescription>
-                Заказ №{orderId} принят. Мы отправим колоду в выбранный пункт выдачи. Когда посылка
+                Заказ №{orderNumber} принят. Мы отправим колоду в выбранный пункт выдачи. Когда посылка
                 приедет, Яндекс Доставка пришлёт SMS на указанный вами номер с адресом пункта и кодом
                 получения.
               </DialogDescription>
