@@ -21,6 +21,7 @@ import tarotSpread from "@/assets/product/tarot-spread.jpg.asset.json";
 import tarotInHand from "@/assets/product/tarot-in-hand.jpg.asset.json";
 import tarotFriends from "@/assets/product/tarot-friends.jpg.asset.json";
 import tgQr from "@/assets/tg-qr-mystic.png.asset.json";
+import vkQr from "@/assets/vk-qr-mystic-v2.png.asset.json";
 import { FULL_DECK } from "@/data/full-deck";
 import { drawDailyCard } from "@/lib/daily-card.functions";
 import { PRIMARY_IMAGES } from "@/data/site-images";
@@ -639,23 +640,45 @@ function RandomizerSection() {
 
           <div className="mt-12 flex flex-col items-center gap-6 rounded-2xl border border-gold/20 bg-background/40 p-6 sm:p-8">
             <p className="max-w-md text-base text-muted-foreground sm:text-lg">
-              Хочешь узнать расшифровку — приходи в наш телеграм-канал. А лучше не плети
+              Хочешь узнать расшифровку — приходи в наши Telegram и ВКонтакте. А лучше не плети
               туманных догадок: купи колоду и гадай самостоятельно.
             </p>
-            <a
-              href="https://t.me/taroroflan"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Открыть канал Таро Рофлан в Telegram"
-              className="block w-44 overflow-hidden rounded-xl border border-gold/30 shadow-lg shadow-primary/10 transition-transform hover:scale-105"
-            >
-              <img
-                src={tgQr.url}
-                alt="QR-код канала Таро Рофлан в Telegram"
-                className="block h-auto w-full"
-                loading="lazy"
-              />
-            </a>
+            <div className="grid grid-cols-2 gap-4 sm:gap-6">
+              <a
+                href="https://t.me/taroroflan"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Открыть канал Таро Рофлан в Telegram"
+                className="group block w-36 sm:w-44"
+              >
+                <img
+                  src={tgQr.url}
+                  alt="QR-код канала Таро Рофлан в Telegram"
+                  className="block aspect-[1055/1491] w-full rounded-xl border border-gold/30 object-cover shadow-lg shadow-primary/10 transition-transform group-hover:scale-[1.03]"
+                  loading="lazy"
+                />
+                <span className="mt-2 block text-sm font-medium text-foreground transition-colors group-hover:text-gold">
+                  Telegram
+                </span>
+              </a>
+              <a
+                href="https://vk.ru/phenomen_taro"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Открыть группу Таро Рофлан во ВКонтакте"
+                className="group block w-36 sm:w-44"
+              >
+                <img
+                  src={vkQr.url}
+                  alt="QR-код группы Таро Рофлан во ВКонтакте"
+                  className="block aspect-[1055/1491] w-full rounded-xl border border-gold/30 object-cover shadow-lg shadow-primary/10 transition-transform group-hover:scale-[1.03]"
+                  loading="lazy"
+                />
+                <span className="mt-2 block text-sm font-medium text-foreground transition-colors group-hover:text-gold">
+                  ВКонтакте
+                </span>
+              </a>
+            </div>
             <Button asChild size="lg" className="px-8 text-lg font-semibold shadow-lg shadow-primary/20">
               <a href="#deck">КУПИТЬ</a>
             </Button>
