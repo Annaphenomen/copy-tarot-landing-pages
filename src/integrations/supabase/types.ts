@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_card_draws: {
+        Row: {
+          card_index: number
+          created_at: string
+          day: string
+          ip_hash: string
+        }
+        Insert: {
+          card_index: number
+          created_at?: string
+          day: string
+          ip_hash: string
+        }
+        Update: {
+          card_index?: number
+          created_at?: string
+          day?: string
+          ip_hash?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address_from: string
