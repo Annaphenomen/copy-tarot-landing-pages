@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789294619592,
+      "tag": "0000_create_daily_card_draws",
+      "breakpoints": true
+    }
+  ]
+}
