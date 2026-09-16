@@ -528,7 +528,9 @@ function CardsSection() {
                     src={card.src}
                     alt={`Карта «${card.title}» — значение карты таро`}
                     className="aspect-[2/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    loading="lazy"
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
                   />
                 </div>
                 <figcaption className="mt-2 hidden text-center text-xs text-muted-foreground sm:block">
